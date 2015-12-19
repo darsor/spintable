@@ -4,74 +4,74 @@ import atexit
 import RPi.GPIO as GPIO
 GPIO.setmode(GPIO.BCM)
 
-M_NUM = 3   # motor number (1-4)
-PIN_A = 19  # encoder pins
+PIN_A = 19          # encoder pins
 PIN_B = 20
 PIN_I = 21
+clockwise = True    # direction of spin
+res = 8            # number of index pulse samples used to find the speed (higher = more accurate)
+inc = 0             # index pulse counter
+inc_old = 0
+speed = 0           # speed in rotations/second
+times = [0] * res   # list to hold 'res' time samples
+times_cnt = 0
 
-# pull up both pins and get ready to read them
+# pull up input pins and get ready to read them
 GPIO.setup(PIN_A, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(PIN_B, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(PIN_I, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-pos = 0
-a_old = GPIO.input(PIN_A)
-b_old = GPIO.input(PIN_B)
-clockwise = True
-inc = 0
-inc_old = 0
-time_new = 0
-time_old = 0
-speed = 0
+a = GPIO.input(PIN_A)
+b = GPIO.input(PIN_B)
 
 # automatically clean up GPIO on exit
 def cleanup():
     GPIO.cleanup()
 atexit.register(cleanup)
 
-def pulse(pin):
-    global PIN_A
-    global PIN_B
-    global pos
+# ISR's for each encoder pin
+def pulseA(pin):
     global a
     global b
-    global a_old
-    global b_old
     global clockwise
-
-    a,b = GPIO.input(PIN_A),GPIO.input(PIN_B)
-    
-    if ((a,b_old) == (1,0)) or ((a,b_old) == (0,1)):
-        pos += 1
+    global PIN_A
+    a = GPIO.input(PIN_A)
+    if a == 1 and b == 1:
         clockwise = True
-    elif ((a,b_old) == (1,1)) or ((a,b_old) == (0,0)):
-        pos -= 1
-        clockwise = False
 
-    a_old,b_old = a,b
+def pulseB(pin):
+    global a
+    global b
+    global clockwise
+    global PIN_B
+    b = GPIO.input(PIN_B)
+    if a == 1 and b == 1:
+        clockwise = False
 
 def increment(pin):
     global inc
     global clockwise
-    global time_new
-    global time_old
     global speed
-    time_new = time.time()
-    speed = 1 / (4.8 * (time_new - time_old))
-    time_old = time_new
+    global times
+    global times_cnt
+    global res
+    times[times_cnt] = time.time()
+    speed = res / (4.8 * (times[times_cnt] - times[(times_cnt+1)%res]))
+    times_cnt += 1
+    if times_cnt > res-1:
+        times_cnt = 0
     if clockwise:
         inc += 1
     else:
         inc -= 1
 
 # set up interrupts
-GPIO.add_event_detect(PIN_A, GPIO.BOTH, callback=pulse)
-GPIO.add_event_detect(PIN_B, GPIO.BOTH, callback=pulse)
+GPIO.add_event_detect(PIN_A, GPIO.BOTH, callback=pulseA)
+GPIO.add_event_detect(PIN_B, GPIO.BOTH, callback=pulseB)
 GPIO.add_event_detect(PIN_I, GPIO.RISING, callback=increment)
 
-
+# dump encoder data
 while (1):
     if (inc != inc_old):
         inc_old = inc
-        print "position: {0:<10} increment: {1:<8} clockwise: {2:<5} speed: {3}".format(pos, inc, clockwise, speed)
+        print "increment: {0:<8} clockwise: {1:<5} speed: {2:.4f}".format(inc, clockwise, speed)
     time.sleep(.05)
