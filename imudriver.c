@@ -149,11 +149,11 @@ int CommandDialog(ComPortHandle comPort){
   int size;
   Byte response[4096] = {0};
 
-  printf("\nEnter command in hexadecimal format, valid commands range from c1 to fe (00 to EXIT)\n");
-  printf("(SEE: 3DM-GX3® Data Communications Protocol Manual for more information):\n");
+ // printf("\nEnter command in hexadecimal format, valid commands range from c1 to fe (00 to EXIT)\n");
+ // printf("(SEE: 3DM-GX3® Data Communications Protocol Manual for more information):\n");
 
-  scanf("%x", &command);//takes 1 byte command in hexadecimal format
-
+ // scanf("%x", &command);//takes 1 byte command in hexadecimal format
+  command=0xce;
   ccommand=(char)command;
 
   if(command==0x00)//command to exit program
@@ -223,7 +223,7 @@ char* scandev(){
   int userchoice=0;
   char* device;
 
-  char *command = "find /dev/serial -print | grep -i microstrain";//search /dev/serial for microstrain devices
+  char *command = "find /dev/serial -print | grep -i ftdi";//search /dev/serial for microstrain devices
   
   printf("Searching for devices...\n");
 

@@ -1,12 +1,12 @@
 /*
  * serialTest.c:
- *	Very simple program to test the serial port. Expects
- *	the port to be looped back to itself
+ *  Very simple program to test the serial port. Expects
+ *  the port to be looped back to itself
  *
  * Copyright (c) 2012-2013 Gordon Henderson. <projects@drogon.net>
  ***********************************************************************
  * This file is part of wiringPi:
- *	https://projects.drogon.net/raspberry-pi/wiringpi/
+ *  https://projects.drogon.net/raspberry-pi/wiringpi/
  *
  *    wiringPi is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as published by
@@ -36,7 +36,7 @@ int main ()
   int count ;
   unsigned int nextTime ;
 
-  if ((fd = serialOpen ("/dev/ttyAMA0", 115200)) < 0)
+  if ((fd = serialOpen ("/dev/ttyAMA0", 9600)) < 0)
   {
     fprintf (stderr, "Unable to open serial device: %s\n", strerror (errno)) ;
     return 1 ;
@@ -52,6 +52,7 @@ int main ()
 
   for (count = 0 ; count < 256 ; )
   {
+    /*
     if (millis () > nextTime)
     {
       printf ("\nOut: %3d: ", count) ;
@@ -62,6 +63,7 @@ int main ()
     }
 
     delay (3) ;
+    */
 
     while (serialDataAvail (fd))
     {

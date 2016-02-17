@@ -110,7 +110,7 @@ int main()
          }
 
          bzero(buffer,sizeof(buffer));
-         usleep(1000000);
+         usleep(20000);
      }
 
      printf("closing program\n");
