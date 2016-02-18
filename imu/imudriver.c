@@ -149,7 +149,7 @@ int CommandDialog(ComPortHandle comPort){
   int size;
   Byte response[4096] = {0};
 
- // printf("\nEnter command in hexadecimal format, valid commands range from c1 to fe (00 to EXIT)\n");
+  //printf("\nEnter command in hexadecimal format, valid commands range from c1 to fe (00 to EXIT)\n");
  // printf("(SEE: 3DM-GX3® Data Communications Protocol Manual for more information):\n");
 
  // scanf("%x", &command);//takes 1 byte command in hexadecimal format
@@ -161,8 +161,11 @@ int CommandDialog(ComPortHandle comPort){
   else 
     writeComPort(comPort, &ccommand, 1);//write command to port
 
-  getchar();//flush keyboard buffer
+ // printf("%x",command);
+  //getchar();//flush keyboard buffer
+  //printf("%x",command);
   Purge(comPort);//flush port
+ // printf("%x",command);
 
   size = readComPort(comPort, &response[0], 4096);
 
@@ -172,7 +175,7 @@ int CommandDialog(ComPortHandle comPort){
   }
   else{
     
-    printf("Data returned from device:\n");
+//    printf("Data returned from device:\n");
     while(size>0){//loop to read until no more bytes in read buffer
   
       if(size<0){

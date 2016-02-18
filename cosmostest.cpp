@@ -1,3 +1,4 @@
+#include "gps/gps.h"
 #include <stdio.h>
 #include <csignal>
 #include <cerrno>
@@ -12,18 +13,19 @@
 struct data {
     uint16_t length;
     uint16_t id;
-    uint32_t test_data;
-}test;
+    gpsTime time;
+};
 
 void htonData(struct data d, char buffer[sizeof(struct data)]) {
     uint16_t u16;
-    uint32_t u32;
     u16 = htons(d.length);
     memcpy(buffer+0, &u16, 2);
     u16 = htons(d.id);
     memcpy(buffer+2, &u16, 2);
-    u32 = htonl(d.test_data);
-    memcpy(buffer+4, &u32, 4);
+    u16 = htons(d.time.hhmmss);
+    memcpy(buffer+4, &u16, 2);
+    u16 = htons(d.time.sss);
+    memcpy(buffer+6, &u16, 2);
 }
 
 void error(const char *msg)
@@ -34,6 +36,8 @@ void error(const char *msg)
 
 int main()
 {
+     struct data test;
+     struct gpsTime time;
      int sockfd, newsockfd, portno;
      socklen_t clilen;
      char buffer[sizeof(struct data)];
@@ -92,15 +96,18 @@ int main()
      printf("server: got connection from %s port %d\n", inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
 
      bzero(buffer,sizeof(buffer));
-     struct data test;
      test.length = sizeof(buffer);
      test.id = 3;
      signal(SIGPIPE, SIG_IGN); // ignore sigpipe signal - don't stop program when writing to closed socket
 
+     // setup GPS
+     Gps gps("/dev/ttyAMA0", 9600);
+
      printf("size of buffer: %d\n", sizeof(buffer));
      while(true) {
-         test.test_data = (uint32_t) (rand() % 99 + 1);
-         printf("sending data: %d\n", test.test_data);
+         test.time = gps.getTime();
+         printf("sending timestamp: %d.%d\n", test.time.hhmmss, test.time.sss);
+         fflush(stdout);
          htonData(test, buffer); // format the data into a buffer
 
          // This send() function sends the bytes of the packet to the new socket
@@ -109,8 +116,7 @@ int main()
              break;
          }
 
-         bzero(buffer,sizeof(buffer));
-         usleep(20000);
+         //bzero(buffer,sizeof(buffer));
      }
 
      printf("closing program\n");

@@ -1,3 +1,4 @@
+#include "gps.h"
 #include <wiringSerial.h>
 #include <wiringPi.h>
 #include <unistd.h>
@@ -5,37 +6,46 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cerrno>
+#include <cmath>
 
-int main() {
-
-    int fd;
-    char buffer[10];
-    double time;
-    
+Gps::Gps() {
     if ((fd = serialOpen("/dev/ttyAMA0", 9600)) < 0) {
         perror("The following error occured");
-        return 1;
     }
-    else printf("device opened\n");
-
     if (wiringPiSetup() < 0) {
         perror("The following error occured");
-        return 1;
     }
+    delay(5);
+}
 
-   delay(5);
-
-    for (;;) {
-        while ( ((char) serialGetchar(fd)) != '$');
-        while ( ((char) serialGetchar(fd)) != ',');
-        for (int i=0; i<10; i++) {
-            buffer[i] = (char) serialGetchar(fd);
-            time = atof(buffer);
-        }
-        printf("%f\n",time);
+Gps::Gps(char* device, int baud) {
+    if ((fd = serialOpen(device, baud)) < 0) {
+        perror("The following error occured");
     }
+    if (wiringPiSetup() < 0) {
+        perror("The following error occured");
+    }
+    delay(5);
+}
 
+Gps::~Gps() {
     serialClose(fd);
-    printf("device closed\n");
-    return 0;
+}
+
+gpsTime Gps::getTime() {
+    gpsTime time;
+    float ftime;
+    while ( ((char) serialGetchar(fd)) != '$');
+    while ( ((char) serialGetchar(fd)) != ',');
+    for (int i=0; i<10; i++) {
+        buffer[i] = (char) serialGetchar(fd);
+        ftime = atof(buffer);
+        time.hhmmss = (uint16_t) ftime;
+        time.sss = (uint16_t) 1000*(ftime - time.hhmmss);
+    }
+    if (serialDataAvail(fd) > 70) {
+        printf("WARNING: GPS stream backlogged\n");
+    } else {
+        return time;
+    }
 }
