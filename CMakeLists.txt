@@ -10,6 +10,8 @@ set (EXTRA_LIBS ${EXTRA_LIBS}
 add_executable (COSMOS_Server
     server.cpp
     gps/gps.cpp
+    tam/I2Cdev.cpp
+    tam/ADS1115.cpp
 )
 
 target_link_libraries (COSMOS_Server ${EXTRA_LIBS})

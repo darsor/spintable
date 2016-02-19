@@ -22,6 +22,9 @@ gcc linux_3DM-GX3-25_sample_driver.c -o BINFILENAME
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
+#include <chrono>
+#include <iostream>
 
 #define TRUE 1
 #define FALSE 0
@@ -153,7 +156,9 @@ int CommandDialog(ComPortHandle comPort){
  // printf("(SEE: 3DM-GX3® Data Communications Protocol Manual for more information):\n");
 
  // scanf("%x", &command);//takes 1 byte command in hexadecimal format
-  command=0xce;
+  auto start = std::chrono::system_clock::now();
+for(int i=0; i<50; i++){
+  command=0xcf;
   ccommand=(char)command;
 
   if(command==0x00)//command to exit program
@@ -166,9 +171,13 @@ int CommandDialog(ComPortHandle comPort){
   //printf("%x",command);
   Purge(comPort);//flush port
  // printf("%x",command);
-
+ 
+  
   size = readComPort(comPort, &response[0], 4096);
-
+  while (size!=31){
+      size=size + readComPort(comPort, &response[size-1],4096);
+  }
+/*
   if(size<=0){
     printf("No data read from previous command.\n");
     return TRUE;
@@ -210,7 +219,11 @@ int CommandDialog(ComPortHandle comPort){
   
     }
 
-  }
+  }*/
+}
+auto end = std::chrono::system_clock::now();
+auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start);
+std::cout << elapsed.count() << '\n';
 
 }
 
@@ -314,12 +327,12 @@ int main(int argc, char* argv[]){
 
     printf("Connected. \n\n");
     
-    while(go){//continue until user chooses to exit
+   // while(go){//continue until user chooses to exit
 
       usleep(10000);//short sleep between commands
       go=CommandDialog(comPort);
 
-    }
+   // }
 
     printf("EXITING\n"); 
     CloseComPort(comPort);

@@ -37,13 +37,13 @@ Gps::~Gps() {
     serialClose(fd);
 }
 
-float Gps::getTime() {
-    float ftime;
+uint32_t Gps::getTime() {
+    uint32_t ftime;
     while ( ((char) serialGetchar(fd)) != '$');
     while ( ((char) serialGetchar(fd)) != ',');
     for (int i=0; i<10; i++) {
         buffer[i] = (char) serialGetchar(fd);
-        ftime = atof(buffer);
+        ftime = atoi(buffer);
     }
     if (serialDataAvail(fd) > 70) {
         printf("WARNING: GPS stream backlogged\n");

@@ -1,6 +1,7 @@
 #ifndef GPS_H
 
 #include <string>
+#include <unistd.h>
 
 class Gps {
     private:
@@ -11,7 +12,7 @@ class Gps {
         Gps();
         Gps(std::string device, int baud);
         ~Gps();
-        float getTime(); // prints a warning if GPS stream is backlogged
+        uint32_t getTime(); // blocks until the next timestamp sent from GPS
 };
 
 #endif
