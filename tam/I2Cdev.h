@@ -50,8 +50,6 @@ THE SOFTWARE.
 #define I2CDEV              RASPBERRY_PI_I2C                 
 
 #ifndef TRUE
-#define TRUE    (1==1)
-#define FALSE   (0==1)
 #endif
 
 #include <stdint.h>

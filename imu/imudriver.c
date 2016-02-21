@@ -329,7 +329,7 @@ int main(int argc, char* argv[]){
     
    // while(go){//continue until user chooses to exit
 
-      usleep(10000);//short sleep between commands
+      //usleep(10000);//short sleep between commands
       go=CommandDialog(comPort);
 
    // }

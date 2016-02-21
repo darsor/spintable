@@ -1,4 +1,5 @@
 #ifndef GPS_H
+#define GPS_H
 
 #include <string>
 #include <unistd.h>
