@@ -45,8 +45,8 @@ ComPortHandle OpenComPort(const char* comPortPath){
     options.c_oflag = 0; // raw output
     options.c_lflag = 0; // raw input
     //Time-Outs -- won't work with NDELAY option in the call to open
-    options.c_cc[VMIN]    = 0;     // block reading until RX x characers. If x = 0, it is non-blocking.
-    options.c_cc[VTIME] = 100;     // Inter-Character Timer -- i.e. timeout= x*.1 s
+    options.c_cc[VMIN]  = 0;      // block reading until RX x characers. If x = 0, it is non-blocking.
+    options.c_cc[VTIME] = 10;     // Inter-Character Timer -- i.e. timeout= x*.1 s
     //Set local mode and enable the receiver
     options.c_cflag |= (CLOCAL | CREAD);
     //Purge serial port buffers
@@ -81,7 +81,7 @@ int writeComPort(ComPortHandle comPort, unsigned char* bytesToWrite, int size){
 }
 
 //scandev
-//finds attached microstrain devices and prompts user for choice then returns selected portname
+//finds attached microstrain devices
 char* scandev(){
     FILE *instream;
     char devnames[255][255];//allows for up to 256 devices with path links up to 255 characters long each
@@ -125,7 +125,7 @@ Imu::Imu(){
     dev=&a;
         dev=scandev();
         if(strcmp(dev,"")!=0){
-            printf("Attempting to open port...%s\n",dev);
+            printf("Attempting to open port...%s: ",dev);
             comPort = OpenComPort(dev);
         }
         else{
@@ -133,17 +133,31 @@ Imu::Imu(){
             return;
         }
     if(comPort > 0)  
-    printf("Connected. \n\n");
+    printf("connected. \n\n");
 }
 
-void Imu::getdata(Byte (&data)[31]) {
+void Imu::getdata(Byte (&data)[43]) {
     int size;
-    writeComPort(comPort, &ccommand, 1); // write command to port
+    writeComPort(comPort, &dataCommand, 1); // write command to port
     Purge(comPort); // flush port
 
-    size = readComPort(comPort, &data[0], 31);
-    while (size!=31) {
-        size = size + readComPort(comPort, &data[size], 31);
+    size = readComPort(comPort, &data[0], 43);
+    while (size!=43) {
+        size = size + readComPort(comPort, &data[size], 43);
+    }
+    if(size<=0){
+        printf("No data read from IMU\n");
+    }
+}
+
+void Imu::getQuaternion(Byte (&data)[23]) {
+    int size;
+    writeComPort(comPort, &quatCommand, 1); // write command to port
+    Purge(comPort); // flush port
+
+    size = readComPort(comPort, &data[0], 23);
+    while (size!=23) {
+        size = size + readComPort(comPort, &data[size], 23);
     }
     if(size<=0){
         printf("No data read from IMU\n");

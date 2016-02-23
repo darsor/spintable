@@ -24,22 +24,37 @@ struct timePacket {
 };
 
 struct sensorPacket {
-    uint16_t length = 49;
+    uint16_t length = 84;
     uint16_t id = 2;
     uint16_t tamA = 0;
     uint16_t tamB = 0;
     uint16_t tamC = 0;
-    unsigned char imuData[31];
-    /* imuData is received in the following way:
-     *   Byte  1:     0xCF      
-     *   Bytes 2-5:   Roll      float
-     *   Bytes 6-9:   Pitch     float
-     *   Bytes 10-13: Yaw       float
-     *   Bytes 14-17: AngRateX  float
-     *   Bytes 18-21: AngRateY  float
-     *   Bytes 22-25: AngRateZ  float
-     *   Bytes 26-29: Timer     unsigned int
-     *   Bytes 30-31: Checksum
+    unsigned char imuData[43] = {0};
+    /* This buffer receives the following data:
+     *  Byte  1     0xCB     Command Echo
+     *  Bytes 2-5   AccelX   (IEEE-754 Floating Point)
+     *  Bytes 6-9   AccelY   (IEEE-754 Floating Point)
+     *  Bytes 10-13 AccelZ   (IEEE-754 Floating Point)
+     *  Bytes 14-17 AngRateX (IEEE-754 Floating Point)
+     *  Bytes 18-21 AngRateY (IEEE-754 Floating Point)
+     *  Bytes 22-25 AngRateZ (IEEE-754 Floating Point)
+     *  Bytes 26-29 MagX     (IEEE-754 Floating Point)
+     *  Bytes 30-33 MagY     (IEEE-754 Floating Point)
+     *  Bytes 34-37 MagZ     (IEEE-754 Floating Point)
+     *  Bytes 38-41 Timer    32-bit Unsigned Integer
+     *  Bytes 42-43 Checksum
+     * NOTE: this data will be parsed by COSMOS when it arrives
+     */
+    unsigned char imuQuat[23] = {0};
+    /* This buffer receives the following quaternion data:
+     *  Byte  1     0xDF    Command Echo
+     *  Bytes 2-5   q0      (IEEE-754 Floating Point)
+     *  Bytes 6-9   q1      (IEEE-754 Floating Point)
+     *  Bytes 10-13 q2      (IEEE-754 Floating Point)
+     *  Bytes 14-17 q3      (IEEE-754 Floating Point)
+     *  Bytes 18-21 Timer   32-bit Unsigned Integer
+     *  Bytes 22-23 Checksum
+     * NOTE: this data will be parsed by COSMOS when it arrives
      */
     uint32_t sysTimeSeconds;
     uint32_t sysTimeuSeconds;
@@ -67,9 +82,9 @@ void camera(cameraPacket &p); // TODO: implement this
 void gpsTimestamp(timePacket &p);
 void systemTimestamp(uint32_t &stime, uint32_t &ustime);
 
-// convert data to network standard
-void convertTimeData(timePacket &p, char buffer[sizeof(struct timePacket)]);
-void convertSensorData(sensorPacket &p, char buffer[sizeof(struct sensorPacket)]);
+// convert data to network byte order
+void convertTimeData(timePacket &p, char buffer[16]);
+void convertSensorData(sensorPacket &p, char buffer[84]);
 
 // send packets
 void sendTimePacket(timePacket &p, int &connectionSocket, int &bindSocket);
@@ -78,9 +93,11 @@ void sendCameraPacket(cameraPacket &p, int &connectionSocket, int &bindSocket);
 
 int main() {
 
+    // set up wiringPi
     wiringPiSetup();
     std::system("gpio edge 1 rising");
 
+    // initialize packets and sockets
     struct timePacket tPacket;
     struct sensorPacket sPacket;
     struct cameraPacket cPacket;
@@ -91,6 +108,7 @@ int main() {
     imu(sPacket);
 //  tam(sPacket);
 
+    // establish connection with COSMOS
     connectionSocket = cosmosConnect(servAddr, cliAddr, bindSocket);
 
     while (true) {
@@ -101,8 +119,10 @@ int main() {
         systemTimestamp(tPacket.sysTimeSeconds, tPacket.sysTimeuSeconds);
         sendTimePacket(tPacket, connectionSocket, bindSocket);
 
+        // every second, do this 10 times
         for (int i=0; i<10; i++) {
 
+            // every second, do this 10*5=50 times
             for (int j=0; j<5; j++) {
                 systemTimestamp(sPacket.sysTimeSeconds, sPacket.sysTimeuSeconds);
                 imu(sPacket);
@@ -170,6 +190,7 @@ void cosmosDisconnect(int &bindSocket, int &connectionSocket) {
 void imu(sensorPacket &p) {
     static Imu imuSensor;
     imuSensor.getdata(p.imuData);
+    imuSensor.getQuaternion(p.imuQuat);
 }
 
 void tam(sensorPacket &p) { // TODO: this doesn't work
@@ -197,7 +218,7 @@ void systemTimestamp(uint32_t &stime, uint32_t &ustime) {
     ustime = timeVal.tv_usec;
 }
 
-void convertTimeData(timePacket &p, char buffer[sizeof(struct timePacket)]) {
+void convertTimeData(timePacket &p, char buffer[16]) {
     uint16_t u16;
     uint32_t u32;
     u16 = htons(p.length);
@@ -212,7 +233,7 @@ void convertTimeData(timePacket &p, char buffer[sizeof(struct timePacket)]) {
     memcpy(buffer+12, &u32, 4);
 }
 
-void convertSensorData(sensorPacket &p, char buffer[sizeof(struct sensorPacket)]) {
+void convertSensorData(sensorPacket &p, char buffer[84]) {
     uint16_t u16;
     uint32_t u32;
     u16 = htons(p.length);
@@ -225,15 +246,16 @@ void convertSensorData(sensorPacket &p, char buffer[sizeof(struct sensorPacket)]
     memcpy(buffer+6,  &u16, 2);
     u16 = htons(p.tamC);
     memcpy(buffer+8,  &u16, 2);
-    memcpy(buffer+10, &p.imuData, 31);
+    memcpy(buffer+10, &p.imuData, 43);
+    memcpy(buffer+53, &p.imuQuat, 23);
     u32 = htonl(p.sysTimeSeconds);
-    memcpy(buffer+41, &u32, 4);
+    memcpy(buffer+76, &u32, 4);
     u32 = htonl(p.sysTimeuSeconds);
-    memcpy(buffer+45, &u32, 4);
+    memcpy(buffer+80, &u32, 4);
 }
 
 void sendTimePacket(timePacket &p, int &connectionSocket, int &bindSocket) {
-    static char timeBuffer[sizeof(struct timePacket)];
+    static char timeBuffer[16];
     convertTimeData(p, timeBuffer);
     if (send(connectionSocket, timeBuffer, sizeof(timeBuffer), 0) < 0) {
         perror("ERROR on send");
@@ -243,9 +265,9 @@ void sendTimePacket(timePacket &p, int &connectionSocket, int &bindSocket) {
 }
 
 void sendSensorPacket(sensorPacket &p, int &connectionSocket, int &bindSocket) {
-    static char sensorBuffer[sizeof(struct sensorPacket)];
+    static char sensorBuffer[84];
     convertSensorData(p, sensorBuffer);
-    if (send(connectionSocket, sensorBuffer, 49, 0) < 0) {
+    if (send(connectionSocket, sensorBuffer, sizeof(sensorBuffer), 0) < 0) {
         perror("ERROR on send");
         cosmosDisconnect(bindSocket, connectionSocket);
         exit(1);

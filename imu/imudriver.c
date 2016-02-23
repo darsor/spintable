@@ -23,7 +23,6 @@ gcc linux_3DM-GX3-25_sample_driver.c -o BINFILENAME
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
-#include <chrono>
 #include <iostream>
 
 #define TRUE 1
@@ -90,7 +89,7 @@ ComPortHandle OpenComPort(const char* comPortPath){
 
   //Time-Outs -- won't work with NDELAY option in the call to open
   options.c_cc[VMIN]  = 0;   // block reading until RX x characers. If x = 0, it is non-blocking.
-  options.c_cc[VTIME] = 100;   // Inter-Character Timer -- i.e. timeout= x*.1 s
+  options.c_cc[VTIME] = 10;   // Inter-Character Timer -- i.e. timeout= x*.1 s
 
   //Set local mode and enable the receiver
   options.c_cflag |= (CLOCAL | CREAD);
@@ -140,90 +139,78 @@ int writeComPort(ComPortHandle comPort, unsigned char* bytesToWrite, int size){
 
 }
 
+int xdigit(char digit) {
+         if ('0' <= digit && digit <= '9') return digit - '0';
+    else if ('a' <= digit && digit <= 'f') return digit - 'a' + 10;
+    else if ('A' <= digit && digit <= 'F') return digit - 'A' + 10;
+    else return -1;
+}
+
 // Simple Linux Console interface function
 
 // CommandDialog
 // Prompts user for device commands and returns reply from device
 int CommandDialog(ComPortHandle comPort){
 
-  unsigned int command;
-  unsigned char ccommand;
+  int commandLen;
+  Byte input[50] = {0};
+  unsigned char command[25];
   int i=0;
   int size;
   Byte response[4096] = {0};
 
-  //printf("\nEnter command in hexadecimal format, valid commands range from c1 to fe (00 to EXIT)\n");
- // printf("(SEE: 3DM-GX3® Data Communications Protocol Manual for more information):\n");
+  printf("\nEnter command in hexadecimal format, valid commands range from C1 to FE (00 to EXIT)\n");
+  printf("(SEE: 3DM-GX3® Data Communications Protocol Manual for more information): ");
 
- // scanf("%x", &command);//takes 1 byte command in hexadecimal format
-  auto start = std::chrono::system_clock::now();
-for(int i=0; i<50; i++){
-  command=0xcf;
-  ccommand=(char)command;
+  scanf("%19s%n", input, &commandLen);
+  if(commandLen & 1) {
+      printf("command must have even number of characters\n");
+      return FALSE; //if the input has odd number of characters
+  }
 
-  if(command==0x00)//command to exit program
+  for(int i=0; i<commandLen; i+=2) {
+      command[i] = xdigit(input[i]) << 4;
+      command[i] += xdigit(input[i+1]);
+  }
+
+  if(command[0]==0x00)//command to exit program
     return FALSE;
   else 
-    writeComPort(comPort, &ccommand, 1);//write command to port
+    writeComPort(comPort, &command[0], commandLen/2);//write command to port
 
- // printf("%x",command);
-  //getchar();//flush keyboard buffer
-  //printf("%x",command);
+  getchar();//flush keyboard buffer
   Purge(comPort);//flush port
- // printf("%x",command);
  
-  
   size = readComPort(comPort, &response[0], 4096);
-  while (size!=31){
-      size=size + readComPort(comPort, &response[size-1],4096);
-  }
-/*
+  
   if(size<=0){
     printf("No data read from previous command.\n");
     return TRUE;
-  }
-  else{
-    
-//    printf("Data returned from device:\n");
+  } else{
+    printf("Data returned from device:\n");
     while(size>0){//loop to read until no more bytes in read buffer
   
       if(size<0){
-  
        printf("BAD READ\n");
        return TRUE;
-  
-      }
-      else{
-  
+      } else{
         for(i=0;i<size;i++){
   
           if(response[i]<0x10){//keeps output bytes listed as two char hex format
-  
             printf("0%x ",response[i]|0x00);
-  
           }
           else{
-  
             printf("%x ",response[i]|0x00);
-  
           }
-  
         }
-  
-        printf("\n");
-        return TRUE;
-  
       }
-  
+      fflush(stdout); //flush console buffer
       size = readComPort(comPort, &response[0], 4096);
-  
     }
+    printf("\n");
+    return TRUE;
 
-  }*/
-}
-auto end = std::chrono::system_clock::now();
-auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start);
-std::cout << elapsed.count() << '\n';
+  }
 
 }
 
@@ -327,12 +314,12 @@ int main(int argc, char* argv[]){
 
     printf("Connected. \n\n");
     
-   // while(go){//continue until user chooses to exit
+    while(go){//continue until user chooses to exit
 
-      //usleep(10000);//short sleep between commands
+      usleep(10000);//short sleep between commands
       go=CommandDialog(comPort);
 
-   // }
+    }
 
     printf("EXITING\n"); 
     CloseComPort(comPort);
