@@ -1,10 +1,10 @@
-#include "motor.h"
+#include "dcmotor.h"
 #include <cstdio>
 
 DCMotor::DCMotor(int addr, int freq) : pwm(addr) {
-	pwmPin = 8;  // for motor 0
-	in1Pin = 9;
-	in2Pin = 10;
+	pwmPin = 2;  // for motor 2
+	in1Pin = 4;
+	in2Pin = 3;
 
 	i2cAddr = addr; // default addr on HAT
     pwm.setPWMFreq(freq); // default @1600Hz PWM freq
@@ -12,23 +12,23 @@ DCMotor::DCMotor(int addr, int freq) : pwm(addr) {
 
 void DCMotor::run(int command) {
 	if (command == FORWARD) {
-		setPin(IN2pin, 0);
-		setPin(IN1pin, 1);
+		setPin(in1Pin, 1);
+        setPin(in2Pin, 0);
 	}
 	if (command == BACKWARD) {
-		setPin(IN1pin, 0);
-		setPin(IN2pin, 1);
+		setPin(in1Pin, 0);
+		setPin(in2Pin, 1);
 	}
 	if (command == RELEASE) {
-		setPin(IN1pin, 0);
-		setPin(IN2pin, 0);
+		setPin(in1Pin, 0);
+		setPin(in2Pin, 0);
 	}
 }
 
 void DCMotor::setSpeed(int speed) {
 	if (speed < 0) speed = 0;
 	if (speed > 255) speed = 255;
-	pwm.setPWM(pwmPIN, 0, speed * 16);
+	pwm.setPWM(pwmPin, 0, speed * 16);
 }
 
 void DCMotor::setPin(int pin, int value) {

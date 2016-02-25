@@ -1,4 +1,5 @@
-#include <pwm.h>
+#include "pwm.h"
+#include <unistd.h>
 #include <cstdlib>
 #include <cstdint>
 #include <cmath>
@@ -6,30 +7,30 @@
 PWM::PWM(int address=0x40) {
     std::system("gpio load i2c");
     pwm = wiringPiI2CSetup (address);
-    // self.setAllPWM(0,0)
     wiringPiI2CWriteReg8(pwm, MODE2, OUTDRV);
     wiringPiI2CWriteReg8(pwm, MODE1, ALLCALL);
     usleep(5000); // wait for oscillator
     uint8_t mode1 = wiringPiI2CReadReg8 (pwm, MODE1);
     mode1 = mode1 & ~SLEEP;
     wiringPiI2CWriteReg8(pwm, MODE1, mode1);
+    usleep(5000); // wait for oscillator
 }
 
 PWM::~PWM() {
-    pwm.close();
+    close(pwm);
 }
 
 void PWM::setPWMFreq(int freq) {
     float prescaleval = 25000000.0; // 25MHz
     prescaleval /= 4096.0;          // 12-bit
-    prescaleval /= float(freq);
+    prescaleval /= (float) freq;
     prescaleval -= 1.0;
     float prescale = floor(prescaleval + 0.5);
 
     uint8_t oldmode = wiringPiI2CReadReg8(pwm, MODE1);
     uint8_t newmode = (oldmode & 0x7F) | 0x10;          // sleep
     wiringPiI2CWriteReg8(pwm, MODE1, newmode);  // go to sleep
-    wiringPiI2CWriteReg8(pwm, PRESCALE, (int) floor(prescale);
+    wiringPiI2CWriteReg8(pwm, PRESCALE, (int) floor(prescale));
     wiringPiI2CWriteReg8(pwm, MODE1, oldmode);
     usleep(5000);
     wiringPiI2CWriteReg8(pwm, MODE1, oldmode | 0x80);

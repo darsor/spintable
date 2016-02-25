@@ -32,7 +32,7 @@
 
 class PWM {
     public:
-        PWM(int address=0x40);
+        PWM(int address); // defaults to 0x40
         ~PWM();
         void setPWMFreq(int freq);
         void setPWM(int channel, int on, int off);

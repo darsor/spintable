@@ -1,7 +1,7 @@
 #ifndef DCMOTOR_H
 #define DCMOTOR_H
 
-#include <pwm.h>
+#include "pwm.h"
 
 #define FORWARD     1
 #define BACKWARD    2
