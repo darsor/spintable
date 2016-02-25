@@ -1,6 +1,6 @@
 #include "gps/gps.h"
 #include "camera/camera.h"
-#include "tam/ADS1115.h"
+//#include "tam/ADS1115.h"
 #include "imu/imu.h"
 #include <wiringPi.h>
 #include <sys/types.h> 
@@ -61,9 +61,9 @@ struct sensorPacket {
 };
 
 struct cameraPacket {
-    uint32_t length = 307214;
+    uint32_t length = 102414;
     uint16_t id = 3;
-    unsigned char pBuffer[307200];
+    unsigned char pBuffer[102400];
     uint32_t sysTimeSeconds;
     uint32_t sysTimeuSeconds;
 };
@@ -85,7 +85,7 @@ void systemTimestamp(uint32_t &stime, uint32_t &ustime);
 // convert data to network byte order
 void convertTimeData(timePacket &p, char buffer[18]);
 void convertSensorData(sensorPacket &p, char buffer[86]);
-void convertCameraData(cameraPacket &p, char buffer[307214]);
+void convertCameraData(cameraPacket &p, char buffer[102414]);
 
 // send packets
 void sendTimePacket(timePacket &p, int &connectionSocket, int &bindSocket);
@@ -133,11 +133,11 @@ int main() {
                 imu(sPacket);
 //              tam(sPacket);
                 sendSensorPacket(sPacket, connectionSocket, bindSocket);
-//              usleep(10000); // TODO: fine tune the delay
+                usleep(10000); // TODO: fine tune the delay
             }
 
-            // TODO: possibly spawn a separate thread for camera?
-            // it might take longer than we want
+        // TODO: possibly spawn a separate thread for camera?
+        // it might take longer than we want
         }
     }
     return 0;
@@ -194,6 +194,7 @@ void imu(sensorPacket &p) {
     imuSensor.getQuaternion(p.imuQuat);
 }
 
+/*
 void tam(sensorPacket &p) { // TODO: this doesn't work
     static ADS1115 Tam(0x48);
     //printf("Tam connected: %s\n", Tam.testConnection() ? "yes" : "no");
@@ -205,6 +206,7 @@ void tam(sensorPacket &p) { // TODO: this doesn't work
     p.tamC = Tam.getConversion();
     printf("ADS A0: %-10u A1: %-10u A2: %-10u\n", p.tamA, p.tamB, p.tamB);
 }
+*/
 
 void camera(cameraPacket &p) {
     static Camera cam;
@@ -260,18 +262,18 @@ void convertSensorData(sensorPacket &p, char buffer[86]) {
     memcpy(buffer+82, &u32, 4);
 }
 
-void convertCameraData(cameraPacket &p, char buffer[307214]) {
+void convertCameraData(cameraPacket &p, char buffer[102414]) {
     uint16_t u16;
     uint32_t u32;
     u32 = htonl(p.length);
     memcpy(buffer+0, &u32, 4);
     u16 = htons(p.id);
     memcpy(buffer+4, &u16, 2);
-    memcpy(buffer+6, p.pBuffer, 307200);
+    memcpy(buffer+6, p.pBuffer, 102400);
     u32 = htonl(p.sysTimeSeconds);
-    memcpy(buffer+307206, &u32, 4);
+    memcpy(buffer+102406, &u32, 4);
     u32 = htonl(p.sysTimeuSeconds);
-    memcpy(buffer+307210, &u32, 4);
+    memcpy(buffer+102410, &u32, 4);
 }
 
 void sendTimePacket(timePacket &p, int &connectionSocket, int &bindSocket) {
@@ -295,7 +297,7 @@ void sendSensorPacket(sensorPacket &p, int &connectionSocket, int &bindSocket) {
 }
 
 void sendCameraPacket(cameraPacket &p, int &connectionSocket, int &bindSocket) {
-    static char cameraBuffer[307214];
+    static char cameraBuffer[102414];
     convertCameraData(p, cameraBuffer);
     if (send(connectionSocket, cameraBuffer, sizeof(cameraBuffer), 0) < 0) {
         perror("ERROR on send");

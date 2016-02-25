@@ -7,7 +7,7 @@ class Camera {
     public:
         Camera();
         ~Camera();
-        int getFrame(unsigned char (&pBuffer)[307200]);
+        int getFrame(unsigned char (&pBuffer)[102400]);
     private:
         int camNum = 0;
 };

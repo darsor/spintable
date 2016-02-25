@@ -62,8 +62,8 @@ Camera::Camera() {
 
     int bin = 2;
     int imageType = 0;
-    int resX = 640;
-    int resY = 480;
+    int resX = 320;
+    int resY = 320;
 
     if (ASI_SUCCESS == ASISetROIFormat(camNum, resX, resY, bin, (ASI_IMG_TYPE) imageType)) {
         printf("\ncamera formatted correctly\n");
@@ -86,7 +86,7 @@ Camera::~Camera() {
     ASICloseCamera(camNum);
 }
 
-int Camera::getFrame(unsigned char (&pBuffer)[307200]) {
+int Camera::getFrame(unsigned char (&pBuffer)[102400]) {
     if (ASI_SUCCESS == ASIGetVideoData(camNum, pBuffer, sizeof(pBuffer), 1000))
         return 0;
     else return -1;
