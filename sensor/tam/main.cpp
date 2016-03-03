@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
 
     printf("ADS1115 Reading: %u\n\r",value);
     printf("ADS1115 Voltage: %g\n\r",voltage);
-    delay(1000);
+    delay(10);
   }
 
   return 0;

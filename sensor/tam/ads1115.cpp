@@ -8,6 +8,7 @@
 
 #include <wiringPi.h>
 #include <wiringPiI2C.h>
+#include <cstdlib>
 
 #include "ads1115.h"
 
@@ -77,6 +78,8 @@ static int myAnalogRead(struct wiringPiNodeStruct *node, int pin) {
 
 int ads1115Setup(const int pinBase, int id) {
   struct wiringPiNodeStruct *node;
+
+  system("gpio load i2c 1000");
 
   node = wiringPiNewNode(pinBase,4);
 
