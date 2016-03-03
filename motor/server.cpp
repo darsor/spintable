@@ -22,6 +22,10 @@ struct timePacket {
 };
 
 struct encoderPacket {
+    uint32_t length = 0; // TODO: length
+    uint16_t id = 2;
+    uint32_t sysTimeSeconds;
+    uint32_t sysTimeuSeconds;
     // TODO: define encoder packet
 };
 
@@ -45,7 +49,7 @@ void convertTimeData(timePacket &p, char buffer[18]);
 void sendTimePacket(timePacket &p, int &connectionSocket, int &bindSocket);
 // TODO: send encoder data
 
-//TODO control motor
+// TODO control motor
 
 int main() {
 
@@ -59,7 +63,7 @@ int main() {
     int bindSocket, connectionSocket;
 
     // initialize devices
-    // TODO: initialize encoder/gps?
+    DCMotor motor(2, 0x60, 1600);
 
     // establish connection with COSMOS
     connectionSocket = cosmosConnect(servAddr, cliAddr, bindSocket);

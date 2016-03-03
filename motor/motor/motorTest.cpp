@@ -12,7 +12,7 @@ int main() {
     int inc = 0;
 	int speedOld = 0;
 
-	DCMotor myMotor(3, addr, freq);
+	DCMotor myMotor(2, addr, freq);
 
 	while (true) {
 		cout << "Input speed (from -255 to 255): ";

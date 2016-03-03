@@ -64,12 +64,14 @@ void DCMotor::setGradSpeed(int speed) {
     else inc = 1;
 
     for (int i=mSpeedOld; i != speed ; i += inc) {
-        if (i < 0) run(BACKWARD);
-        else run(FORWARD);
+        if (i < 0) {
+            run(BACKWARD);
+        }
+        else { run(FORWARD);
+        }
 
         setSpeed(abs(i));
         usleep(8000);
-        if (i > speed) break; // sanity check
     }
 
     mSpeedOld = speed;
