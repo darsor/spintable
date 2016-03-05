@@ -1,6 +1,7 @@
 #include <wiringPiSPI.h>
 #include <cstdio>
 #include <cstdlib>
+#include <errno.h>
 
 int setup_encoder(unsigned char (&)[10]);
 int read_encoder(unsigned char data[]);
@@ -8,12 +9,13 @@ int clear_encoder(unsigned char (&)[10]);
 
 int main(){
     system("gpio load spi");
-    int feedback=wiringPiSPISetup(0,9600);
+    if (wiringPiSPISetup(0,1000000) < 0)
+        perror("ERROR opening device");
     unsigned char data[10] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
     
     setup_encoder(data);
     for(int i=0; i<10; i++)
-    read_encoder(data);
+        read_encoder(data);
     clear_encoder(data);
 
     for(int i=0; i<10; i++)

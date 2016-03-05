@@ -10,7 +10,7 @@
 
 class DCMotor {
     public:
-        DCMotor(int channel, int addr, int freq);
+        DCMotor(int channel=2, int addr=0x60, int freq=1600);
         ~DCMotor();
 
         void run(int command);

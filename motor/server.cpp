@@ -19,7 +19,7 @@ struct timePacket {
     uint32_t gpsTime;
     uint32_t sysTimeSeconds;
     uint32_t sysTimeuSeconds;
-};
+} tPacket;
 
 struct encoderPacket {
     uint32_t length = 0; // TODO: length
@@ -27,7 +27,12 @@ struct encoderPacket {
     uint32_t sysTimeSeconds;
     uint32_t sysTimeuSeconds;
     // TODO: define encoder packet
-};
+} ePacket;
+
+struct motorPacket {
+    int16_t speed;
+    uint16_t id;
+} mPacket;
 
 // report errors
 void error(const char *msg);
@@ -47,9 +52,13 @@ void convertTimeData(timePacket &p, char buffer[18]);
 
 // send packets
 void sendTimePacket(timePacket &p, int &connectionSocket, int &bindSocket);
-// TODO: send encoder data
+// TODO: send encoder packet
 
-// TODO control motor
+// receive motor packet
+void recvPacket(motorPacket &p, int &bindSocket, int &connectionSocket);
+
+// control motor
+void setSpeed(DCMotor &motor, motorPacket &p);
 
 int main() {
 
@@ -58,12 +67,13 @@ int main() {
     std::system("gpio edge 1 rising");
 
     // initialize packets and sockets
-    struct timePacket tPacket;
     struct sockaddr_in servAddr, cliAddr;
     int bindSocket, connectionSocket;
 
     // initialize devices
-    DCMotor motor(2, 0x60, 1600);
+    if (piThreadCreate(motorControl) != 0) {
+        perror("Motor control thread didn't start");
+    }
 
     // establish connection with COSMOS
     connectionSocket = cosmosConnect(servAddr, cliAddr, bindSocket);
@@ -77,13 +87,27 @@ int main() {
         sendTimePacket(tPacket, connectionSocket, bindSocket);
 
         // every second, do this 50 times
-        for (int j=0; j<5; j++) {
-            systemTimestamp(sPacket.sysTimeSeconds, ePacket.sysTimeuSeconds);
+        for (int j=0; j<50; j++) {
+            systemTimestamp(ePacket.sysTimeSeconds, ePacket.sysTimeuSeconds);
             // TODO: get encoder data and send encoder packet
             usleep(10000); // TODO: fine tune the delay
         }
     }
     return 0;
+}
+
+PI_THREAD (motorControl) {
+    DCMotor motor(2, 0x60, 1600);
+    int speed = 0;
+    while (true) {
+        piLock(0);
+        speed = mPacket.speed;
+        piUnlock(0);
+        if (mPacket.speed != motor.getSpeed()) {
+            motor.setGradSpeed(mPacket.speed);
+        }
+        usleep(500000);
+    }
 }
 
 void error(const char *msg) {
@@ -166,5 +190,25 @@ void sendTimePacket(timePacket &p, int &connectionSocket, int &bindSocket) {
         perror("ERROR on send");
         cosmosDisconnect(bindSocket, connectionSocket);
         exit(1);
+    }
+}
+
+void recvmPacket(int &bindSocket, int &connectionSocket) {
+    static char motorBuffer[4];
+    if (receive(connectionSocket, motorBuffer, sizeof(motorBuffer), 0) < 0) {
+        perror("ERROR on receive");
+        cosmosDisconnect(bindSocket, connectionSocket);
+        exit(1);
+    }
+    piLock(0);
+    mPacket.speed = *((int16_t *) motorBuffer);
+    piUnlock(0);
+}
+
+void setSpeed(DCMotor &motor, motorPacket &p) {
+    static int speed = 0;
+    if (speed != p.speed) {
+        speed = p.speed;
+        motor.setGradSpeed(speed);
     }
 }
