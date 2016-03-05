@@ -1,6 +1,0 @@
-cmake_install.cmake
-CMakeFiles/
-CMakeCache.txt
-COSMOS_Server
-Makefile
-imu/a.out
