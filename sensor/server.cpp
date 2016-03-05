@@ -1,6 +1,6 @@
 #include "gps/gps.h"
-#include "camera/camera.h"
-//#include "tam/ADS1115.h"
+//#include "camera/camera.h"
+#include "tam/tam.h"
 #include "imu/imu.h"
 #include <wiringPi.h>
 #include <sys/types.h> 
@@ -77,7 +77,7 @@ void cosmosDisconnect(int &bindSocket, int &connectionSocket);
 
 // gather data from various sensors
 void imu(sensorPacket &p);
-void tam(sensorPacket &p); //TODO: implement this
+void tam(sensorPacket &p);
 void camera(cameraPacket &p);
 void gpsTimestamp(timePacket &p);
 void systemTimestamp(uint32_t &stime, uint32_t &ustime);
@@ -107,8 +107,8 @@ int main() {
 
     // initialize devices
     imu(sPacket);
-//  tam(sPacket);
-    camera(cPacket);
+    tam(sPacket);
+//  camera(cPacket);
 
     // establish connection with COSMOS
     connectionSocket = cosmosConnect(servAddr, cliAddr, bindSocket);
@@ -120,9 +120,6 @@ int main() {
         gpsTimestamp(tPacket);
         systemTimestamp(tPacket.sysTimeSeconds, tPacket.sysTimeuSeconds);
         sendTimePacket(tPacket, connectionSocket, bindSocket);
-        systemTimestamp(cPacket.sysTimeSeconds, cPacket.sysTimeuSeconds); //TODO: put this camera stuff back into the 10-for loop
-        camera(cPacket);
-        sendCameraPacket(cPacket, connectionSocket, bindSocket);
 
         // every second, do this 10 times
         for (int i=0; i<10; i++) {
@@ -131,13 +128,16 @@ int main() {
             for (int j=0; j<5; j++) {
                 systemTimestamp(sPacket.sysTimeSeconds, sPacket.sysTimeuSeconds);
                 imu(sPacket);
-//              tam(sPacket);
+                tam(sPacket);
                 sendSensorPacket(sPacket, connectionSocket, bindSocket);
-                usleep(10000); // TODO: fine tune the delay
+                usleep(2000); // TODO: fine tune the delay
             }
 
         // TODO: possibly spawn a separate thread for camera?
         // it might take longer than we want
+        //systemTimestamp(cPacket.sysTimeSeconds, cPacket.sysTimeuSeconds); //TODO: put this camera stuff back into the 10-for loop
+        //camera(cPacket);
+        //sendCameraPacket(cPacket, connectionSocket, bindSocket);
         }
     }
     return 0;
@@ -194,24 +194,19 @@ void imu(sensorPacket &p) {
     imuSensor.getQuaternion(p.imuQuat);
 }
 
-/*
-void tam(sensorPacket &p) { // TODO: this doesn't work
-    static ADS1115 Tam(0x48);
-    //printf("Tam connected: %s\n", Tam.testConnection() ? "yes" : "no");
-    Tam.setMultiplexer(0);
-    p.tamA = Tam.getConversion();
-    Tam.setMultiplexer(1);
-    p.tamB = Tam.getConversion();
-    Tam.setMultiplexer(2);
-    p.tamC = Tam.getConversion();
-    printf("ADS A0: %-10u A1: %-10u A2: %-10u\n", p.tamA, p.tamB, p.tamB);
+void tam(sensorPacket &p) {
+    static Tam tamSensor;
+    p.tamA = tamSensor.getData(0);
+    p.tamB = tamSensor.getData(1);
+    p.tamC = tamSensor.getData(2);
 }
-*/
 
+/*
 void camera(cameraPacket &p) {
     static Camera cam;
     printf("video data: %d\n", cam.getFrame(p.pBuffer));
 }
+*/
 
 void gpsTimestamp(timePacket &p) {
     static Gps gps("/dev/ttyAMA0", 9600);

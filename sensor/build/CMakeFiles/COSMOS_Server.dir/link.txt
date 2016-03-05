@@ -1,0 +1,1 @@
+/usr/bin/c++    -std=c++11 -o3    CMakeFiles/COSMOS_Server.dir/server.cpp.o CMakeFiles/COSMOS_Server.dir/gps/gps.cpp.o CMakeFiles/COSMOS_Server.dir/imu/imu.cpp.o CMakeFiles/COSMOS_Server.dir/camera/camera.cpp.o CMakeFiles/COSMOS_Server.dir/tam/tam.cpp.o CMakeFiles/COSMOS_Server.dir/tam/ads1115.cpp.o  -o COSMOS_Server -rdynamic -lwiringPi -lASICamera2 

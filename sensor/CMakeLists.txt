@@ -13,6 +13,8 @@ add_executable (COSMOS_Server
     gps/gps.cpp
     imu/imu.cpp
     camera/camera.cpp
+    tam/tam.cpp
+    tam/ads1115.cpp
 )
 
 target_link_libraries (COSMOS_Server ${EXTRA_LIBS})
