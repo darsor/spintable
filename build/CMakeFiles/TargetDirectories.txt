@@ -1,2 +1,0 @@
-/home/pi/spintable/build/CMakeFiles/motor.dir
-/home/pi/spintable/build/CMakeFiles/sensor.dir
