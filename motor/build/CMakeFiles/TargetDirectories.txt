@@ -1,1 +1,0 @@
-/home/pi/spintable/motor/build/CMakeFiles/COSMOS_Server.dir

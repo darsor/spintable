@@ -1,1 +1,0 @@
-/usr/bin/c++    -std=c++11 -o3    CMakeFiles/COSMOS_Server.dir/server.cpp.o CMakeFiles/COSMOS_Server.dir/gps/gps.cpp.o CMakeFiles/COSMOS_Server.dir/motor/dcmotor.cpp.o CMakeFiles/COSMOS_Server.dir/motor/pwm.cpp.o  -o COSMOS_Server -rdynamic -lwiringPi 

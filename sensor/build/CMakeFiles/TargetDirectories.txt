@@ -1,1 +1,0 @@
-/home/pi/spintable/sensor/build/CMakeFiles/COSMOS_Server.dir

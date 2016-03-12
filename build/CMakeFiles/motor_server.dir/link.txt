@@ -1,0 +1,1 @@
+/usr/bin/c++    -std=c++11 -o3    CMakeFiles/motor_server.dir/gps/gps.cpp.o CMakeFiles/motor_server.dir/cosmos/cosmos.cpp.o CMakeFiles/motor_server.dir/motorpi.cpp.o CMakeFiles/motor_server.dir/motor/dcmotor.cpp.o CMakeFiles/motor_server.dir/motor/pwm.cpp.o  -o motor_server -rdynamic -lwiringPi 
