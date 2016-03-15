@@ -15,9 +15,11 @@ Gps::Gps() {
         perror("ERROR opening GPS");
         exit(1);
     }
-    if (wiringPiSetup() < 0) {
-        perror("ERROR setting up wiringPi");
-        exit(1);
+    if (pinMode == NULL) {
+        if (wiringPiSetup() < 0) {
+            perror("ERROR setting up wiringPi");
+            exit(1);
+        }
     }
     delay(5);
     serialPrintf(fd, "$PMTK314,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*29\r\n");
@@ -29,9 +31,11 @@ Gps::Gps(std::string device, int baud) {
         perror("ERROR opening GPS");
         exit(1);
     }
-    if (wiringPiSetup() < 0) {
-        perror("ERROR setting up wiringPi");
-        exit(1);
+    if (pinMode == NULL) {
+        if (wiringPiSetup() < 0) {
+            perror("ERROR setting up wiringPi");
+            exit(1);
+        }
     }
     delay(5);
     serialPrintf(fd, "$PMTK314,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*29\r\n");

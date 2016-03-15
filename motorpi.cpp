@@ -1,3 +1,4 @@
+#include "cosmos/cosmos.h"
 #include "gps/gps.h"
 #include "motor/dcmotor.h"
 #include <wiringPi.h>
@@ -26,11 +27,28 @@ void convertTimeData(timePacket &p, char buffer[18]);
 void sendTimePacket(timePacket &p, Cosmos &cosmos);
 // TODO: send encoder packet
 
-// receive motor packet
-void recvPacket(motorPacket &p, Cosmos &cosmos); 
-
 // control motor
 void setSpeed(DCMotor &motor, motorPacket &p);
+
+// initialize COSMOS
+// this is global for now so that the motor can access it
+Cosmos cosmos(8321);
+
+PI_THREAD (motorControl) {
+    static char motorBuffer[4];
+    static motorPacket mPacket;
+    static DCMotor motor(2, 0x60, 1600);
+    while (true) {
+        if (cosmos.recvPacket(motorBuffer, 4) == 0) {
+            mPacket.speed = ntohs(*(motorBuffer));
+            mPacket.id = ntohs(*(motorBuffer+2));
+            if (mPacket.id = 1) {
+                motor.setGradSpeed(mPacket.speed);
+            }
+        }
+        usleep(20000);
+    }
+}
 
 int main() {
 
@@ -38,47 +56,36 @@ int main() {
     wiringPiSetup();
     std::system("gpio edge 1 rising");
 
+    // initialize packets
+    struct timePacket tPacket;
+    struct encoderPacket ePacket;
+
+    // establish connection with COSMOS
+    cosmos.cosmosConnect();
+
     // initialize devices
     if (piThreadCreate(motorControl) != 0) {
         perror("Motor control thread didn't start");
     }
 
-    // initialize COSMOS
-    Cosmos cosmos(8321);
-
-    // establish connection with COSMOS
-    cosmos.cosmosConnect();
-
     while (true) {
 
         // get timestamps and send time packet
         waitForInterrupt (1, 2000);
-        gpsTimestamp(tPacket);
+        gps(tPacket);
         systemTimestamp(tPacket.sysTimeSeconds, tPacket.sysTimeuSeconds);
-        sendTimePacket(tPacket, connectionSocket, bindSocket);
+        sendTimePacket(tPacket, cosmos);
 
         // every second, do this 50 times
         for (int j=0; j<50; j++) {
-            systemTimestamp(ePacket.sysTimeSeconds, ePacket.sysTimeuSeconds);
+//          systemTimestamp(ePacket.sysTimeSeconds, ePacket.sysTimeuSeconds);
             // TODO: get encoder data and send encoder packet
+            systemTimestamp(tPacket.sysTimeSeconds, tPacket.sysTimeuSeconds);
+            sendTimePacket(tPacket, cosmos);
             usleep(10000); // TODO: fine tune the delay
         }
     }
     return 0;
-}
-
-PI_THREAD (motorControl) {
-    DCMotor motor(2, 0x60, 1600);
-    int speed = 0;
-    while (true) {
-        piLock(0);
-        speed = mPacket.speed;
-        piUnlock(0);
-        if (mPacket.speed != motor.getSpeed()) {
-            motor.setGradSpeed(mPacket.speed);
-        }
-        usleep(500000);
-    }
 }
 
 void error(const char *msg) {
@@ -118,19 +125,6 @@ void sendTimePacket(timePacket &p, Cosmos &cosmos) {
     static char timeBuffer[18];
     convertTimeData(p, timeBuffer);
     cosmos.sendPacket(timeBuffer, sizeof(timeBuffer));
-}
-
-// TODO: finish this
-void recvmPacket(Cosmos &cosmos) {
-    static char motorBuffer[4];
-    if (receive(connectionSocket, motorBuffer, sizeof(motorBuffer), 0) < 0) {
-        perror("ERROR on receive");
-        cosmosDisconnect(bindSocket, connectionSocket);
-        exit(1);
-    }
-    piLock(0);
-    mPacket.speed = *((int16_t *) motorBuffer);
-    piUnlock(0);
 }
 
 void setSpeed(DCMotor &motor, motorPacket &p) {

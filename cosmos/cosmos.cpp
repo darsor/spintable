@@ -58,10 +58,18 @@ void Cosmos::cosmosDisconnect() {
     close(connectionSocket);
 }
 
-void Cosmos::sendPacket(char* buffer, int size) {
+int Cosmos::sendPacket(char* buffer, int size) {
     if (send(connectionSocket, buffer, size, 0) < 0) {
         perror("ERROR on send");
-        cosmosDisconnect();
-        exit(1);
+        return -1;
     }
+    return 0;
+}
+
+int Cosmos::recvPacket(char* buffer, int size) {
+    if (recv(connectionSocket, buffer, size, 0) < 0) {
+        perror("ERROR on receive");
+        return -1;
+    }
+    return 0;
 }

@@ -58,6 +58,7 @@ int main() {
     while (true) {
 
         // get timestamps and send time packet
+        waitForInterrupt (1, 2000);
         gps(tPacket);
         systemTimestamp(tPacket.sysTimeSeconds, tPacket.sysTimeuSeconds);
         sendTimePacket(tPacket, cosmos);

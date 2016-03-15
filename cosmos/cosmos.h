@@ -67,8 +67,8 @@ struct encoderPacket {
 };
 
 struct motorPacket {
-    uint16_t id;
     int16_t speed;
+    uint16_t id;
 };
 
 class Cosmos {
@@ -78,7 +78,8 @@ class Cosmos {
         ~Cosmos();
         void cosmosConnect();
         void cosmosDisconnect();
-        void sendPacket(char* buffer, int size);
+        int sendPacket(char* buffer, int size);
+        int recvPacket(char* buffer, int size);
 
     private:
         int connectionSocket;
