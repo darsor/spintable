@@ -39,10 +39,14 @@ PI_THREAD (motorControl) {
     static motorPacket mPacket;
     static DCMotor motor(2, 0x60, 1600);
     while (true) {
-        if (cosmos.recvPacket(motorBuffer, 4) == 0) {
-            mPacket.speed = ntohs(*(motorBuffer));
-            mPacket.id = ntohs(*(motorBuffer+2));
-            if (mPacket.id = 1) {
+        int16_t speed;
+        uint16_t id;
+        if (cosmos.recvPacket(motorBuffer, 4) == 0) { // TODO: when the client disconnects, this starts looping and setting motor speed
+            mPacket.speed = ntohs(*((int16_t*)motorBuffer));
+            mPacket.id = ntohs(*((uint16_t*)(motorBuffer+2)));
+            }
+            printf("\n");
+            if (mPacket.id == 1) {
                 motor.setGradSpeed(mPacket.speed);
             }
         }
@@ -71,8 +75,8 @@ int main() {
     while (true) {
 
         // get timestamps and send time packet
-        waitForInterrupt (1, 2000);
-        gps(tPacket);
+        //waitForInterrupt (1, 2000);
+//      gps(tPacket);
         systemTimestamp(tPacket.sysTimeSeconds, tPacket.sysTimeuSeconds);
         sendTimePacket(tPacket, cosmos);
 
@@ -82,7 +86,7 @@ int main() {
             // TODO: get encoder data and send encoder packet
             systemTimestamp(tPacket.sysTimeSeconds, tPacket.sysTimeuSeconds);
             sendTimePacket(tPacket, cosmos);
-            usleep(10000); // TODO: fine tune the delay
+            usleep(20000); // TODO: fine tune the delay
         }
     }
     return 0;
