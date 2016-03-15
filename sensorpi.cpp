@@ -43,21 +43,21 @@ int main() {
     struct sensorPacket sPacket;
     struct cameraPacket cPacket;
 
-    // initialize devices
-    imu(sPacket);
-    tam(sPacket);
-//  camera(cPacket);
-
     // initialize cosmos
     Cosmos cosmos(8321);
 
     // establish connection with COSMOS
     cosmos.cosmosConnect();
 
+    // initialize devices
+    imu(sPacket);
+    tam(sPacket);
+    gps(tPacket);
+//  camera(cPacket);
+
     while (true) {
 
         // get timestamps and send time packet
-        waitForInterrupt (1, 2000);
         gps(tPacket);
         systemTimestamp(tPacket.sysTimeSeconds, tPacket.sysTimeuSeconds);
         sendTimePacket(tPacket, cosmos);

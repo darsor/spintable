@@ -1,7 +1,6 @@
 #include "camera.h"
 #include <cstdlib>
 #include <cstdio>
-#include <fstream>
 #include <unistd.h>
 
 Camera::Camera() {
@@ -69,11 +68,7 @@ Camera::~Camera() {
 }
 
 int Camera::getFrame(unsigned char (&pBuffer)[102400]) {
-//  std::ofstream ofile("image", std::ios::binary);
-//  printf("file is %s open\n", ofile.is_open() ? "" : "not");
     if (getImageData(pBuffer, sizeof(pBuffer), -1)) {
-//      ofile.write((char*) pBuffer, sizeof(pBuffer));
-//      ofile.close();
         return 0;
     } else return -1;
 }

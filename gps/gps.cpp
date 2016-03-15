@@ -2,6 +2,7 @@
 #include <wiringSerial.h>
 #include <wiringPi.h>
 #include <unistd.h>
+#include <termios.h>
 #include <iostream>
 #include <cstdlib>
 #include <cstdio>
@@ -19,6 +20,8 @@ Gps::Gps() {
         exit(1);
     }
     delay(5);
+    serialPrintf(fd, "$PMTK314,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*29\r\n");
+    delay(5);
 }
 
 Gps::Gps(std::string device, int baud) {
@@ -31,6 +34,8 @@ Gps::Gps(std::string device, int baud) {
         exit(1);
     }
     delay(5);
+    serialPrintf(fd, "$PMTK314,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*29\r\n");
+    delay(5);
 }
 
 Gps::~Gps() {
@@ -39,15 +44,20 @@ Gps::~Gps() {
 
 uint32_t Gps::getTime() {
     uint32_t ftime;
-    while ( ((char) serialGetchar(fd)) != '$');
-    while ( ((char) serialGetchar(fd)) != ',');
-    for (int i=0; i<10; i++) {
-        buffer[i] = (char) serialGetchar(fd);
-        ftime = atoi(buffer);
-    }
-    if (serialDataAvail(fd) > 70) {
-        printf("WARNING: GPS stream backlogged\n");
-    } else {
-        return ftime;
-    }
+    // loop until all data is read
+    do {
+        // jump to beginning of sentence ($)
+        while ( ((char) serialGetchar(fd)) != '$');
+        // jump to ','
+        while ( ((char) serialGetchar(fd)) != ',');
+        // get time
+        for (int i=0; i<10; i++) {
+            buffer[i] = (char) serialGetchar(fd);
+        }
+        // read until end of sentence (\x0a)
+        while ( ((char) serialGetchar(fd)) != '\n');
+    } while (serialDataAvail(fd));
+    ftime = atoi(buffer);
+    printf("GPS time: %d\n", ftime);
+    return ftime;
 }
