@@ -29,57 +29,56 @@ int sendTimePacket(timePacket &p, Cosmos &cosmos);
 int sendCameraPacket(cameraPacket &p, Cosmos &cosmos);
 int sendSensorPacket(sensorPacket &p, Cosmos &cosmos);
 
+// initialize cosmos
+Cosmos cosmos(8321);
+
+PI_THREAD (cameraControl) {
+    static struct cameraPacket cPacket;
+    camera(cPacket);
+    while (true) {
+        systemTimestamp(cPacket.sysTimeSeconds, cPacket.sysTimeuSeconds);
+        camera(cPacket);
+        while (sendCameraPacket(cPacket, cosmos) != 0)
+            usleep(10000); // don't overload processor if it looses connection
+    }
+}
+
 int main() {
 
     // set up wiringPi
     wiringPiSetup();
-    std::system("gpio edge 1 rising");
 
     // initialize packets
     struct timePacket tPacket;
     struct sensorPacket sPacket;
-    struct cameraPacket cPacket;
-
-    // initialize cosmos
-    Cosmos cosmos(8321);
 
     // establish connection with COSMOS
-    cosmos.cosmosConnect();
+    cosmos.acceptConnection();
 
     // initialize devices
     imu(sPacket);
     tam(sPacket);
     gps(tPacket);
-//  camera(cPacket);
+    if (piThreadCreate(cameraControl) != 0) {
+        perror("Motor control thread didn't start");
+    }
 
     while (true) {
 
         // get timestamps and send time packet
-        waitForInterrupt (1, 2000);
         gps(tPacket);
         systemTimestamp(tPacket.sysTimeSeconds, tPacket.sysTimeuSeconds);
         if (sendTimePacket(tPacket, cosmos) != 0) {
             printf("Connection with COSMOS lost\n");
             return 1;
         }
-
-        // every second, do this 10 times
-        for (int i=0; i<10; i++) {
-
-            // every second, do this 10*5=50 times
-            for (int j=0; j<5; j++) {
-                systemTimestamp(sPacket.sysTimeSeconds, sPacket.sysTimeuSeconds);
-                imu(sPacket);
-                tam(sPacket);
-                sendSensorPacket(sPacket, cosmos);
-//              usleep(2000); // TODO: fine tune the delay
-            }
-
-        // TODO: possibly spawn a separate thread for camera?
-        // it might take longer than we want
-//      systemTimestamp(cPacket.sysTimeSeconds, cPacket.sysTimeuSeconds);
-//      camera(cPacket);
-//      sendCameraPacket(cPacket, cosmos);
+        // every second, do this 50 times
+        for (int j=0; j<50; j++) {
+            systemTimestamp(sPacket.sysTimeSeconds, sPacket.sysTimeuSeconds);
+            imu(sPacket); // TODO: put one of these in a thread?
+            tam(sPacket); // there's too much delay after the timestamp
+            sendSensorPacket(sPacket, cosmos);
+//          usleep(2000); // TODO: fine tune the delay
         }
     }
     return 0;
