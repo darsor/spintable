@@ -12,9 +12,6 @@
 #include <cstdio>
 #include <cerrno>
 
-// report errors
-void error(const char *msg);
-
 // gather data from various sensors
 void imu(sensorPacket &p);
 void tam(sensorPacket &p);
@@ -28,9 +25,9 @@ void convertSensorData(sensorPacket &p, char buffer[86]);
 void convertCameraData(cameraPacket &p, char buffer[102414]);
 
 // send packets
-void sendTimePacket(timePacket &p, Cosmos &cosmos);
-void sendCameraPacket(cameraPacket &p, Cosmos &cosmos);
-void sendSensorPacket(sensorPacket &p, Cosmos &cosmos);
+int sendTimePacket(timePacket &p, Cosmos &cosmos);
+int sendCameraPacket(cameraPacket &p, Cosmos &cosmos);
+int sendSensorPacket(sensorPacket &p, Cosmos &cosmos);
 
 int main() {
 
@@ -61,7 +58,10 @@ int main() {
         waitForInterrupt (1, 2000);
         gps(tPacket);
         systemTimestamp(tPacket.sysTimeSeconds, tPacket.sysTimeuSeconds);
-        sendTimePacket(tPacket, cosmos);
+        if (sendTimePacket(tPacket, cosmos) != 0) {
+            printf("Connection with COSMOS lost\n");
+            return 1;
+        }
 
         // every second, do this 10 times
         for (int i=0; i<10; i++) {
@@ -83,11 +83,6 @@ int main() {
         }
     }
     return 0;
-}
-
-void error(const char *msg) {
-    perror(msg);
-    exit(1);
 }
 
 void imu(sensorPacket &p) {
@@ -171,20 +166,20 @@ void convertCameraData(cameraPacket &p, char buffer[102414]) {
     memcpy(buffer+102410, &u32, 4);
 }
 
-void sendTimePacket(timePacket &p, Cosmos &cosmos) {
+int sendTimePacket(timePacket &p, Cosmos &cosmos) {
     static char timeBuffer[18];
     convertTimeData(p, timeBuffer);
-    cosmos.sendPacket(timeBuffer, sizeof(timeBuffer));
+    return cosmos.sendPacket(timeBuffer, sizeof(timeBuffer));
 }
 
-void sendSensorPacket(sensorPacket &p, Cosmos &cosmos) {
+int sendSensorPacket(sensorPacket &p, Cosmos &cosmos) {
     static char sensorBuffer[86];
     convertSensorData(p, sensorBuffer);
-    cosmos.sendPacket(sensorBuffer, sizeof(sensorBuffer));
+    return cosmos.sendPacket(sensorBuffer, sizeof(sensorBuffer));
 }
 
-void sendCameraPacket(cameraPacket &p, Cosmos &cosmos) {
+int sendCameraPacket(cameraPacket &p, Cosmos &cosmos) {
     static char cameraBuffer[102414];
     convertCameraData(p, cameraBuffer);
-    cosmos.sendPacket(cameraBuffer, sizeof(cameraBuffer));
+    return cosmos.sendPacket(cameraBuffer, sizeof(cameraBuffer));
 }
