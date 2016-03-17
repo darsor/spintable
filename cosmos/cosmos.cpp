@@ -23,7 +23,7 @@ void Cosmos::cosmosConnect() {
     bindSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (bindSocket<0) {
         perror("ERROR opening socket");
-        exit(1);
+        return;
     }
 
     // clear and set up server address structure
@@ -35,27 +35,29 @@ void Cosmos::cosmosConnect() {
     // bind socket
     if (bind(bindSocket, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
         perror("ERROR on binding");
-        exit(1);
+        return;
     }
 
     // listen on socket
-    listen(bindSocket, 1);
+    listen(bindSocket, 5);
     printf("listening on port %d\n", port);
-
-    // accept a connection
-    clilen = sizeof(cli_addr);
-    connectionSocket = accept(bindSocket, (struct sockaddr *) &cli_addr, &clilen);
-    if (connectionSocket<0) {
-        perror("ERROR on accept");
-        exit(1);
-    }
-
-    printf("accepted connection from %s:%d\n", inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
 }
 
 void Cosmos::cosmosDisconnect() {
     close(bindSocket);
     close(connectionSocket);
+}
+
+void Cosmos::acceptConnection() {
+    close(connectionSocket);
+    clilen = sizeof(cli_addr);
+    connectionSocket = accept(bindSocket, (struct sockaddr *) &cli_addr, &clilen);
+    if (connectionSocket<0) {
+        perror("ERROR on accept");
+        return;
+    }
+
+    printf("accepted connection from %s:%d\n", inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
 }
 
 int Cosmos::sendPacket(char* buffer, int size) {

@@ -59,11 +59,11 @@ struct cameraPacket {
 };
 
 struct encoderPacket {
-    uint32_t length = 0; // TODO: length
+    uint32_t length = 18;
     uint16_t id = 4;
     uint32_t sysTimeSeconds;
     uint32_t sysTimeuSeconds;
-    // TODO: define encoder packet
+    uint32_t motorHz;
 };
 
 struct motorPacket {
@@ -78,6 +78,7 @@ class Cosmos {
         ~Cosmos();
         void cosmosConnect();
         void cosmosDisconnect();
+        void acceptConnection();
         int sendPacket(char* buffer, int size);
         int recvPacket(char* buffer, int size);
 
