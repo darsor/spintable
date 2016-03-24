@@ -12,6 +12,8 @@ Cosmos::Cosmos(int portno) {
     // ignore sigpipe signal - don't stop program when writing to closed socket
     // (it will be handled instead)
     signal(SIGPIPE, SIG_IGN);
+
+    cosmosConnect();
 }
 
 Cosmos::~Cosmos() {

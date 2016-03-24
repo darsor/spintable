@@ -61,7 +61,6 @@ int main() {
     struct encoderPacket ePacket;
 
     // establish connection with COSMOS
-    cosmos.cosmosConnect();
     cosmos.acceptConnection();
 
     // initialize devices
@@ -81,7 +80,6 @@ int main() {
 
         // every second, do this 50 times
         for (int j=0; j<50; j++) {
-            // TODO: get encoder data and send encoder packet
             systemTimestamp(ePacket.sysTimeSeconds, ePacket.sysTimeuSeconds);
                 // NOTE: always get the timestamp right before reading the encoder
                 // (it's needed to calculate the speed)

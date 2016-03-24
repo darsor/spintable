@@ -23,11 +23,13 @@ DCMotor::DCMotor(int channel, int addr, int freq) : pwm(addr) {
     } else printf("ERROR: incorrect motor channel, must be between 0-3\n");
 
 	i2cAddr = addr;
+    mSpeed = 0;
+    mSpeedOld = 0;
     pwm.setPWMFreq(freq); // default @1600Hz PWM freq
+    run(RELEASE);
 }
 
 DCMotor::~DCMotor() {
-    setGradSpeed(0);
     run(RELEASE);
 }
 
@@ -59,11 +61,13 @@ void DCMotor::setGradSpeed(int speed) {
     } else if (speed < -255) {
         speed = -255;
     }
+    //printf("speed changing from %d to %d\n", mSpeedOld, speed);
 
     if (speed < mSpeedOld) inc = -1;
     else inc = 1;
 
     for (int i=mSpeedOld; i != speed ; i += inc) {
+        //printf("old speed: %d, current speed: %d, new speed: %d\n", mSpeedOld, i, speed);
         if (i < 0) {
             run(BACKWARD);
         }
@@ -71,9 +75,12 @@ void DCMotor::setGradSpeed(int speed) {
         }
 
         setSpeed(abs(i));
-        usleep(8000);
+        usleep(6000);
     }
 
+    if (speed == 0) {
+        run(RELEASE);
+    }
     mSpeedOld = speed;
 }
 

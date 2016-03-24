@@ -3,9 +3,9 @@
 #include <cstdlib>
 #include <errno.h>
 
-int setup_encoder(unsigned char (&)[10]);
+int setup_encoder(unsigned char data[]);
 int read_encoder(unsigned char data[]);
-int clear_encoder(unsigned char (&)[10]);
+int clear_encoder(unsigned char data[]);
 
 int main(){
     system("gpio load spi");
@@ -25,12 +25,12 @@ int main(){
     return 0;
 }
 
-int setup_encoder(unsigned char (&data)[10]){
+int setup_encoder(unsigned char data[]){
     data[0]=0x88;
     data[1]=0x03;
 
     for(int i=0; i<10; i++)
-        wiringPiSPIDataRW(0, &data[i], 2);
+        wiringPiSPIDataRW(0, data, 2);
 }
 
 int read_encoder(unsigned char data[]){
@@ -47,7 +47,7 @@ int read_encoder(unsigned char data[]){
     printf("\n");
 }
 
-int clear_encoder(unsigned char (&data)[10]){
+int clear_encoder(unsigned char data[]){
     data[0]=0x98;
     data[1]=0x00;
     data[2]=0x00;
@@ -55,5 +55,5 @@ int clear_encoder(unsigned char (&data)[10]){
     data[4]=0x00;
 
     for(int i=0; i<10; i++)
-        wiringPiSPIDataRW(0, &data[i], 5);
+        wiringPiSPIDataRW(0, data, 5);
 }
