@@ -1,7 +1,7 @@
 #include "cosmos/cosmos.h"
 #include "gps/gps.h"
 #include "motor/dcmotor.h"
-//TODO #include "encoder/decoder.h"
+#include "encoder/decoder.h"
 #include <wiringPi.h>
 #include <sys/types.h> 
 #include <sys/time.h>
@@ -83,8 +83,8 @@ int main() {
             systemTimestamp(ePacket.sysTimeSeconds, ePacket.sysTimeuSeconds);
                 // NOTE: always get the timestamp right before reading the encoder
                 // (it's needed to calculate the speed)
-//          encoder(ePacket);
-//          sendEncoderPacket(ePacket, cosmos);
+            encoder(ePacket);
+            sendEncoderPacket(ePacket, cosmos);
             usleep(10000); // TODO: fine tune the delay
         }
     }
@@ -109,11 +109,12 @@ void encoder(encoderPacket &p) {
     static unsigned int i;
     static double times[4];
     static uint32_t ticks[4];
-    ticks[i] = decoder.getQuadCount();
+    ticks[i] = decoder.readCntr();
     times[i] = p.sysTimeSeconds + (p.sysTimeuSeconds/1000000.0);
 
-    // TODO: this is untested
-    p.motorHz = ( (ticks[(i+1)%4] - ticks[i]) / (times[(i+1)%4] - times[i]) ) / 4915.2;
+    //printf("calculating (%d-%d)/(%f-%f)\n", ticks[i], ticks[(i+1)%4], times[i], times[(i+1)%4]);
+    p.motorHz = ( ((int) ticks[i] - (int) ticks[(i+1)%4]) / (times[i] - times[(i+1)%4]) ) / 2457.6;
+    //printf("motorHz: %f\n", p.motorHz);
     
     if (++i > 3) i = 0;
 }
@@ -134,8 +135,11 @@ void convertTimeData(timePacket &p, char buffer[18]) {
 }
 
 void convertEncoderData(encoderPacket &p, char buffer[18]) {
-    uint16_t u16;
-    uint32_t u32;
+    static uint16_t u16;
+    static uint32_t u32;
+    static float r;
+    unsigned char *s = (unsigned char *)&p.motorHz;
+    unsigned char *d = (unsigned char *)&r;
     u32 = htonl(p.length);
     memcpy(buffer+0,  &u32, 4);
     u16 = htons(p.id);
@@ -144,12 +148,15 @@ void convertEncoderData(encoderPacket &p, char buffer[18]) {
     memcpy(buffer+6,  &u32, 4);
     u32 = htonl(p.sysTimeuSeconds);
     memcpy(buffer+10, &u32, 4);
-    u32 = htonl(p.motorHz);
-    memcpy(buffer+14, &u32, 4);
+    d[0] = s[3];
+    d[1] = s[2];
+    d[2] = s[1];
+    d[3] = s[0];
+    memcpy(buffer+14, &r, 4);
 }
 
 int sendTimePacket(timePacket &p, Cosmos &cosmos) {
-    static char timeBuffer[18];
+static char timeBuffer[18];
     convertTimeData(p, timeBuffer);
     return cosmos.sendPacket(timeBuffer, sizeof(timeBuffer));
 }

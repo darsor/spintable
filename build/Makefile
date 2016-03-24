@@ -179,6 +179,30 @@ cosmos/cosmos.cpp.s:
 	$(MAKE) -f CMakeFiles/sensor.dir/build.make CMakeFiles/sensor.dir/cosmos/cosmos.cpp.s
 .PHONY : cosmos/cosmos.cpp.s
 
+encoder/decoder.o: encoder/decoder.cpp.o
+.PHONY : encoder/decoder.o
+
+# target to build an object file
+encoder/decoder.cpp.o:
+	$(MAKE) -f CMakeFiles/motor.dir/build.make CMakeFiles/motor.dir/encoder/decoder.cpp.o
+.PHONY : encoder/decoder.cpp.o
+
+encoder/decoder.i: encoder/decoder.cpp.i
+.PHONY : encoder/decoder.i
+
+# target to preprocess a source file
+encoder/decoder.cpp.i:
+	$(MAKE) -f CMakeFiles/motor.dir/build.make CMakeFiles/motor.dir/encoder/decoder.cpp.i
+.PHONY : encoder/decoder.cpp.i
+
+encoder/decoder.s: encoder/decoder.cpp.s
+.PHONY : encoder/decoder.s
+
+# target to generate assembly for a file
+encoder/decoder.cpp.s:
+	$(MAKE) -f CMakeFiles/motor.dir/build.make CMakeFiles/motor.dir/encoder/decoder.cpp.s
+.PHONY : encoder/decoder.cpp.s
+
 gps/gps.o: gps/gps.cpp.o
 .PHONY : gps/gps.o
 
@@ -390,6 +414,9 @@ help:
 	@echo "... cosmos/cosmos.o"
 	@echo "... cosmos/cosmos.i"
 	@echo "... cosmos/cosmos.s"
+	@echo "... encoder/decoder.o"
+	@echo "... encoder/decoder.i"
+	@echo "... encoder/decoder.s"
 	@echo "... gps/gps.o"
 	@echo "... gps/gps.i"
 	@echo "... gps/gps.s"

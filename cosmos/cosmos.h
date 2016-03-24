@@ -63,7 +63,7 @@ struct encoderPacket {
     uint16_t id = 4;
     uint32_t sysTimeSeconds;
     uint32_t sysTimeuSeconds;
-    uint32_t motorHz;
+    float motorHz;
 };
 
 struct motorPacket {

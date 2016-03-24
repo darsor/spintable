@@ -1,59 +1,36 @@
 #include <wiringPiSPI.h>
-#include <cstdio>
+#include "decoder.h"
 #include <cstdlib>
-#include <errno.h>
+#include <cstdio>
+#include <unistd.h>
 
-int setup_encoder(unsigned char data[]);
-int read_encoder(unsigned char data[]);
-int clear_encoder(unsigned char data[]);
-
-int main(){
-    system("gpio load spi");
-    if (wiringPiSPISetup(0,1000000) < 0)
-        perror("ERROR opening device");
-    unsigned char data[10] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
-    
-    setup_encoder(data);
-    for(int i=0; i<10; i++)
-        read_encoder(data);
-    clear_encoder(data);
-
-    for(int i=0; i<10; i++)
-        printf("%c",data[i]);
-    printf("\n");
-
-    return 0;
+Decoder::Decoder(){
+    system("gpio load spi");// loads the spi device on the RasPi
+    wiringPiSPISetup(0,1000000);
+//  if (wiringPiSPISetup(0,1000000) < 0)
+//      perror("ERROR opening device");
+    data[0]=0x88; // hexadecimal codes required for Decoder Setup
+    data[1]=0x01;
+    wiringPiSPIDataRW(0, data, 2);
+    clearCntr();
 }
 
-int setup_encoder(unsigned char data[]){
-    data[0]=0x88;
-    data[1]=0x03;
-
-    for(int i=0; i<10; i++)
-        wiringPiSPIDataRW(0, data, 2);
+void Decoder::clearCntr(){
+    data[0]=0x20;// hexadecimal code to clear the Decoder
+    wiringPiSPIDataRW(0, data, 1);
 }
 
-int read_encoder(unsigned char data[]){
+uint32_t Decoder::readCntr(){
     data[0]=0x60; 
     data[1]=0x00;
     data[2]=0x00;
     data[3]=0x00;
     data[4]=0x00;
 
-    //for(int i=0; i<10; i++)
-        wiringPiSPIDataRW(0, data, 1);
-    for(int i=0; i<10; i++)
-        printf("%x",data[i]);
-    printf("\n");
-}
+    wiringPiSPIDataRW(0, data, 5);
 
-int clear_encoder(unsigned char data[]){
-    data[0]=0x98;
-    data[1]=0x00;
-    data[2]=0x00;
-    data[3]=0x00;
-    data[4]=0x00;
+    uint32_t count  = ((uint32_t) data[1] << 24) + ((uint32_t) data[2] << 16);
+    count += ((uint32_t) data[3] << 8)  +  (uint32_t) data[4];
 
-    for(int i=0; i<10; i++)
-        wiringPiSPIDataRW(0, data, 5);
-}
+    return count; 
+} 
