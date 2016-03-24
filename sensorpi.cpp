@@ -33,7 +33,6 @@ int main() {
 
     // set up wiringPi
     wiringPiSetup();
-    std::system("gpio edge 1 rising");
 
     // initialize packets
     struct timePacket tPacket;
@@ -45,6 +44,7 @@ int main() {
 
     // establish connection with COSMOS
     cosmos.cosmosConnect();
+    cosmos.acceptConnection();
 
     // initialize devices
     imu(sPacket);
@@ -55,7 +55,6 @@ int main() {
     while (true) {
 
         // get timestamps and send time packet
-        waitForInterrupt (1, 2000);
         gps(tPacket);
         systemTimestamp(tPacket.sysTimeSeconds, tPacket.sysTimeuSeconds);
         if (sendTimePacket(tPacket, cosmos) != 0) {

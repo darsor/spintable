@@ -1,8 +1,34 @@
 #ifndef IMU_H
 #define IMU_H
 
+#include <cstdint>
+
 typedef int ComPortHandle;
 typedef unsigned char Byte;
+
+struct ImuSettings {
+    uint16_t decimationValue;
+    uint16_t conditioningFlags;
+    uint8_t accelFilterWidth;
+    uint8_t magFilterWidth;
+    uint16_t upCompensation;
+    uint16_t northCompensation;
+    uint8_t bandwidthPower;
+    uint16_t reserved;
+};
+
+struct ImuSettingsPacket {
+    char sync1 = 0x75;
+    char sync2 = 0x65;
+    char descSet = 0x0c;
+    char payloadLength = 0x10;
+    char fieldLength = 0x10;
+    char fieldDescriptor = 0x35;
+    char function; // 0x01 - apply new settings, 0x02 - read current settings, 0x03 - save current settings as startup settings
+    struct ImuSettings settings;
+    char checksum1;
+    char checksum2;
+};
 
 class Imu{
     private:
@@ -12,6 +38,11 @@ class Imu{
     public:
         Imu();
         ~Imu();
+        void printHexByte(char byte);
+        void calcChecksum(char* data, int size, char* checksum);
+        int readComPort(unsigned char* bytes, int size);
+        int writeComPort(unsigned char* bytes, int size);
+        void sendCmd(char* data, int size, char* reply, int reply_size);
         void getdata(Byte (&data)[43]);
             /* Writes the following data to the 43-byte buffer
              *  Byte  1     0xCB     Command Echo

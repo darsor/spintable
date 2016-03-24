@@ -62,6 +62,6 @@ uint32_t Gps::getTime() {
         while ( ((char) serialGetchar(fd)) != '\n');
     } while (serialDataAvail(fd));
     ftime = atoi(buffer);
-    printf("GPS time: %d\n", ftime);
+    //printf("GPS time: %d\n", ftime);
     return ftime;
 }

@@ -68,16 +68,20 @@ void CloseComPort(ComPortHandle comPort){
 }
 
 // readComPort
-// read the specivied number of bytes from the com port
-int readComPort(ComPortHandle comPort, Byte* bytes, int bytesToRead){
-    int bytesRead = read(comPort, bytes, bytesToRead);
+// read the specified number of bytes from the com port
+int Imu::readComPort(unsigned char* bytes, int size){
+    int bytesRead = read(comPort, bytes, size);
+    while (bytesRead<size) {
+        printf("bytes read: %d\n", bytesRead);
+        bytesRead += read(comPort, &bytes[bytesRead], size - bytesRead);
+    }
     return bytesRead;     
 }
 
 // writeComPort
 // send bytes to the com port
-int writeComPort(ComPortHandle comPort, unsigned char* bytesToWrite, int size){
-    return write(comPort, bytesToWrite, size);
+int Imu::writeComPort(unsigned char* bytes, int size){
+    return write(comPort, bytes, size);
 }
 
 //scandev
@@ -138,13 +142,10 @@ Imu::Imu(){
 
 void Imu::getdata(Byte (&data)[43]) {
     int size;
-    writeComPort(comPort, &dataCommand, 1); // write command to port
+    writeComPort(&dataCommand, 1); // write command to port
     Purge(comPort); // flush port
 
-    size = readComPort(comPort, &data[0], 43);
-    while (size!=43) {
-        size = size + readComPort(comPort, &data[size], 43);
-    }
+    size = readComPort(&data[0], 43);
     if(size<=0){
         printf("No data read from IMU\n");
     }
@@ -152,13 +153,10 @@ void Imu::getdata(Byte (&data)[43]) {
 
 void Imu::getQuaternion(Byte (&data)[23]) {
     int size;
-    writeComPort(comPort, &quatCommand, 1); // write command to port
+    writeComPort(&quatCommand, 1); // write command to port
     Purge(comPort); // flush port
 
-    size = readComPort(comPort, &data[0], 23);
-    while (size!=23) {
-        size = size + readComPort(comPort, &data[size], 23);
-    }
+    size = readComPort(&data[0], 23);
     if(size<=0){
         printf("No data read from IMU\n");
     }
@@ -166,4 +164,22 @@ void Imu::getQuaternion(Byte (&data)[23]) {
 
 Imu::~Imu(){
     CloseComPort(comPort);
+}
+
+void Imu::printHexByte(char byte) {
+    if (byte < 16) {
+        printf("0");
+    }
+    printf("%x ", byte);
+}
+
+void Imu::calcChecksum(char* data, int size, char* checksum) {
+    char checksum_byte1 = 0;
+    char checksum_byte2 = 0;
+    for(int i=0; i<size; i++) {
+        checksum_byte1 += data[i];
+        checksum_byte2 += checksum_byte1;
+    }
+    checksum[0] = checksum_byte1;
+    checksum[1] = checksum_byte2;
 }
