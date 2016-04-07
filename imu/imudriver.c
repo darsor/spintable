@@ -162,23 +162,48 @@ int CommandDialog(ComPortHandle comPort){
   printf("\nEnter command in hexadecimal format, valid commands range from C1 to FE (00 to EXIT)\n");
   printf("(SEE: 3DM-GX3® Data Communications Protocol Manual for more information): ");
 
-  scanf("%19s%n", input, &commandLen);
-  if(commandLen & 1) {
-      printf("command must have even number of characters\n");
-      return FALSE; //if the input has odd number of characters
+/*    scanf("%19s%n", input, &commandLen);
+    printf("commandLen=%d\n",commandLen);
+    if(commandLen & 1) {
+       printf("command must have even number of characters\n");
+       return FALSE; //if the input has odd number of characters
   }
 
   for(int i=0; i<commandLen; i+=2) {
       command[i] = xdigit(input[i]) << 4;
       command[i] += xdigit(input[i+1]);
-  }
-
+  }*/
+ /* command[0]=0xdb;
+  command[1]=0xa8;
+  command[2]=0xb9;
+  command[3]=0x02;
+  command[4]=0x00;
+  command[5]=0x0a;
+  command[6]=0x14;
+  command[7]=0x03;
+  command[8]=0x0f;
+  command[9]=0x10;
+  command[10]=0x00;
+  command[11]=0x0a;
+  command[12]=0x03;
+  command[13]=0xe8;
+  command[14]=0x00;
+  command[15]=0x00;
+  command[16]=0x00;
+  command[17]=0x00;
+  command[18]=0x00;
+  command[19]=0x00;
+*/
+  command[0]=0xdf;
   if(command[0]==0x00)//command to exit program
     return FALSE;
   else 
-    writeComPort(comPort, &command[0], commandLen/2);//write command to port
+      writeComPort(comPort, &command[0], 1);//write command to port
+    //writeComPort(comPort, &command[0], commandLen/2);//write command to port
+   // for(int i=0; i<20; i++)
+    //    writeComPort(comPort, &command[i], 1);//write command to port
 
-  getchar();//flush keyboard buffer
+ // getchar();//flush keyboard buffer
   Purge(comPort);//flush port
  
   size = readComPort(comPort, &response[0], 4096);
