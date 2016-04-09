@@ -1,3 +1,6 @@
+/////////////////////////////////////////
+//Implementation file for the IMU class//
+/////////////////////////////////////////
 #include <termios.h> // terminal io (serial port) interface
 #include <fcntl.h>   // File control definitions
 #include <errno.h>   // Error number definitions
@@ -120,7 +123,8 @@ char* scandev(){
     }
 }
 
-
+//constructor for the IMU class. Finds and establishes a connection
+//with the IMU.
 Imu::Imu(){
     char* dev;
     char a;
@@ -139,6 +143,11 @@ Imu::Imu(){
     printf("connected. \n\n");
 }
 
+//////////////////////////////////////////////////////////////////////
+//Returns a packet of data from the IMU according the settings.     //
+//To learn more about the settings and the stucture of the data, see//
+//"3DM-GX3-25 Single Byte Data Communications Protocol"             //
+//////////////////////////////////////////////////////////////////////
 void Imu::getdata(Byte (&data)[43]) {
     int size;
     writeComPort(&dataCommand, 1); // write command to port
@@ -150,6 +159,13 @@ void Imu::getdata(Byte (&data)[43]) {
     }
 }
 
+////////////////////////////////////////////////////////////////////
+//Returns the Quaternion data from the IMU.  In order to read this//
+//data, you must change the settings in the IMU.  By default, the //
+//necessary settings are turned off.  To learn how to change the  //
+//settings and which settings need to be changed, read            //
+//"3DM-GX3-25 Single Byte Data Communications Protocol"           //
+////////////////////////////////////////////////////////////////////
 void Imu::getQuaternion(Byte (&data)[23]) {
     int size;
     writeComPort(&quatCommand, 1); // write command to port
@@ -161,10 +177,12 @@ void Imu::getQuaternion(Byte (&data)[23]) {
     }
 }
 
+//Destructor for the IMU class.
 Imu::~Imu(){
     CloseComPort(comPort);
 }
 
+//Prints the Hexadecimal data in the correct format.
 void Imu::printHexByte(char byte) {
     if (byte < 16) {
         printf("0");
@@ -172,6 +190,8 @@ void Imu::printHexByte(char byte) {
     printf("%x ", byte);
 }
 
+//When the IMU sends a packet of data, it sends a Checksum at the end
+//in order to catch corrupted data.  This function checks the Checksum.
 void Imu::calcChecksum(char* data, int size, uint16_t* checksum) {
     uint16_t checksum_byte1 = 0;
     uint16_t checksum_byte2 = 0;

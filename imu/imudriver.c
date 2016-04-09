@@ -1,3 +1,15 @@
+////////////////////////////////////////////////////////////////////
+//This is the modified version of the old IMU code.  We repurposed//
+//this code from another project and made some changes that better//
+//suited our project.  We used this code mostly to troubleshoot   //
+//the IMU and to change the settings.  From lines 177 to about 230//
+//there is a lot of code that has been commented out.  This is    //
+//where we would do most of our trouble shooting.  We could use   //
+//that code to change the settings in the IMU and send multiple   //
+//byte commands.                                                  //
+////////////////////////////////////////////////////////////////////
+
+
 //Example code for interfacing with the Microstrain 3DM-GX3-25 Sensor
 
 /* compile using:
@@ -162,7 +174,10 @@ int CommandDialog(ComPortHandle comPort){
   printf("\nEnter command in hexadecimal format, valid commands range from C1 to FE (00 to EXIT)\n");
   printf("(SEE: 3DM-GX3® Data Communications Protocol Manual for more information): ");
 
-/*    scanf("%19s%n", input, &commandLen);
+//This group of code (everything within the /* */)can be used when you want to read single byte commands
+//from user input.  In order to use this code you have to uncomment the code
+//about 45 lines down which flushes the keyboard buffer.
+/*  scanf("%19s%n", input, &commandLen);
     printf("commandLen=%d\n",commandLen);
     if(commandLen & 1) {
        printf("command must have even number of characters\n");
@@ -172,8 +187,12 @@ int CommandDialog(ComPortHandle comPort){
   for(int i=0; i<commandLen; i+=2) {
       command[i] = xdigit(input[i]) << 4;
       command[i] += xdigit(input[i+1]);
-  }*/
- /* command[0]=0xdb;
+  }
+*/
+
+//Example multibyte command.  This can be written to the IMU using a for loop.
+//For more examples of Multibyte commands, see "3DM-GX3-25 Single Byte Data Communications Protocol."
+/*command[0]=0xdb;
   command[1]=0xa8;
   command[2]=0xb9;
   command[3]=0x02;
@@ -194,16 +213,24 @@ int CommandDialog(ComPortHandle comPort){
   command[18]=0x00;
   command[19]=0x00;
 */
-  command[0]=0xdf;
-  if(command[0]==0x00)//command to exit program
+
+  //Example of a single byte command.
+  //command[0]=0xdf;
+  
+  //If you are asking for user input, than the command 00 will exit the program
+  if(command[0]==0x00)
     return FALSE;
   else 
-      writeComPort(comPort, &command[0], 1);//write command to port
+    //Uncomment the following line if you only want to send a one byte command  
     //writeComPort(comPort, &command[0], commandLen/2);//write command to port
-   // for(int i=0; i<20; i++)
+
+    //Uncomment this for loop if you want to send a multibyte command.
+    //for(int i=0; i<20; i++)
     //    writeComPort(comPort, &command[i], 1);//write command to port
 
- // getchar();//flush keyboard buffer
+//Uncomment the following line if you are asking for user input from the keyboard.
+//getchar();//flush keyboard buffer
+
   Purge(comPort);//flush port
  
   size = readComPort(comPort, &response[0], 4096);

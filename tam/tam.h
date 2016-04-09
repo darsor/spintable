@@ -1,3 +1,4 @@
+//Header file for the TAM class.
 #ifndef TAM_H
 #define TAM_H
 

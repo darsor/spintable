@@ -1,3 +1,4 @@
+//Implementation file for the GPS class.
 #include "gps.h"
 #include <wiringSerial.h>
 #include <wiringPi.h>

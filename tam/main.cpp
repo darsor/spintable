@@ -1,3 +1,4 @@
+//Code used for testing our TAM class.
 #include "tam.h"
 #include <cstdio>
 #include <unistd.h>

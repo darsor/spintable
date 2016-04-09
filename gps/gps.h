@@ -1,3 +1,4 @@
+//Header file for the GPS class.
 #ifndef GPS_H
 #define GPS_H
 

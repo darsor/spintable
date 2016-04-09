@@ -1,3 +1,5 @@
+//Implementation file for the TAM class.  Necessary header files
+//are tam.h and ads1115.h.  ads1115.h is included within tam.h
 #include "tam.h"
 
 Tam::Tam() {
