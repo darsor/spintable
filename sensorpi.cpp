@@ -38,8 +38,11 @@ PI_THREAD (cameraControl) {
     while (true) {
         systemTimestamp(cPacket.sysTimeSeconds, cPacket.sysTimeuSeconds);
         camera(cPacket);
-        while (sendCameraPacket(cPacket, cosmos) != 0)
-            usleep(10000); // don't overload processor if it looses connection
+        while (sendCameraPacket(cPacket, cosmos) != 0) {
+            //printf("unable to send camera packet\n");
+            usleep(2000000); // don't overload processor if it looses connection
+        }
+        usleep(40000);
     }
 }
 
@@ -53,15 +56,15 @@ int main() {
     struct sensorPacket sPacket;
 
     // establish connection with COSMOS
-    cosmos.cosmosConnect();
     cosmos.acceptConnection();
 
     // initialize devices
     imu(sPacket);
     tam(sPacket);
     gps(tPacket);
+
     if (piThreadCreate(cameraControl) != 0) {
-        perror("Motor control thread didn't start");
+        perror("Camera control thread didn't start");
     }
 
     while (true) {
@@ -71,7 +74,8 @@ int main() {
         systemTimestamp(tPacket.sysTimeSeconds, tPacket.sysTimeuSeconds);
         if (sendTimePacket(tPacket, cosmos) != 0) {
             printf("Connection with COSMOS lost\n");
-            return 1;
+            cosmos.acceptConnection();
+            printf("Reconnected with COSMOS\n");
         }
         // every second, do this 50 times
         for (int j=0; j<50; j++) {
@@ -100,7 +104,7 @@ void tam(sensorPacket &p) {
 
 void camera(cameraPacket &p) {
     static Camera cam;
-    printf("video data: %d\n", cam.getFrame(p.pBuffer));
+    cam.getFrame(p.pBuffer);
 }
 
 void gps(timePacket &p) {

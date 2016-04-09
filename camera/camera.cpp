@@ -22,7 +22,7 @@ Camera::Camera() {
         }
     ***************************************************/
     int numDevices = getNumberOfConnectedCameras();
-    int numControls = 0;
+    //int numControls = 0;
 
     if (numDevices <= 0) {
         printf("no camera connected, press any key to exit\n");
@@ -51,13 +51,14 @@ Camera::Camera() {
     }
 
     // These controls were found in the SDK demo
-    setValue(CONTROL_EXPOSURE, 100*1000, false); //ms//auto
-    setValue(CONTROL_GAIN,getMin(CONTROL_GAIN), false); 
+    setValue(CONTROL_EXPOSURE, 1000, false); //ms//auto
+    setValue(CONTROL_GAIN, 0, false); 
+    setValue(CONTROL_GAMMA, 1, false); 
     setValue(CONTROL_BANDWIDTHOVERLOAD, getMin(CONTROL_BANDWIDTHOVERLOAD), false); //low transfer speed
 
     setValue(CONTROL_WB_B, 90, false);
     setValue(CONTROL_WB_R, 48, false);
-    setAutoPara(getMax(CONTROL_GAIN)/2,10,150); //max auto gain and exposure and target brightness
+//  setAutoPara(getMax(CONTROL_GAIN)/2,10,150); //max auto gain and exposure and target brightness
 //	EnableDarkSubtract("dark.bmp"); //dark subtract will be disabled when exposure set auto and exposure below 500ms
     startCapture(); //start preview
 }

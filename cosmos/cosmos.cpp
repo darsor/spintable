@@ -1,10 +1,13 @@
 #include "cosmos.h"
+#include <mutex>
 #include <csignal>
 #include <cstdio>
 #include <cerrno>
 #include <unistd.h>
 #include <cstdlib>
 #include <string.h>
+
+std::mutex write_mutex;
 
 Cosmos::Cosmos(int portno) {
     port = portno;
@@ -63,10 +66,13 @@ void Cosmos::acceptConnection() {
 }
 
 int Cosmos::sendPacket(char* buffer, int size) {
+    write_mutex.lock();
     if (send(connectionSocket, buffer, size, 0) < 0) {
+        write_mutex.unlock();
         perror("ERROR on send");
         return -1;
     }
+    write_mutex.unlock();
     return 0;
 }
 

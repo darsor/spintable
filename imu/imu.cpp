@@ -72,7 +72,6 @@ void CloseComPort(ComPortHandle comPort){
 int Imu::readComPort(unsigned char* bytes, int size){
     int bytesRead = read(comPort, bytes, size);
     while (bytesRead<size) {
-        printf("bytes read: %d\n", bytesRead);
         bytesRead += read(comPort, &bytes[bytesRead], size - bytesRead);
     }
     return bytesRead;     
@@ -91,7 +90,7 @@ char* scandev(){
     char devnames[255][255];//allows for up to 256 devices with path links up to 255 characters long each
     int devct=0; //counter for number of devices
     int userchoice=0;
-    char* device;
+    char* device = NULL;
     std::string str = "find /dev/serial -print | grep -i ftdi";
     const char *command = str.c_str(); // search /dev/serial for microstrain devices
     instream=popen(command, "r"); // execute piped command in read mode
@@ -103,7 +102,7 @@ char* scandev(){
         ++devct;
     }
     for(int i=0;i<devct;i++){
-        for(int j=0;j<sizeof(devnames[i]);j++){
+        for(unsigned int j=0;j<sizeof(devnames[i]);j++){
             if(devnames[i][j]=='\n'){
                 devnames[i][j]='\0';//replaces newline inserted by pipe reader with char array terminator character 
                 break;//breaks loop after replacement
@@ -173,13 +172,12 @@ void Imu::printHexByte(char byte) {
     printf("%x ", byte);
 }
 
-void Imu::calcChecksum(char* data, int size, char* checksum) {
-    char checksum_byte1 = 0;
-    char checksum_byte2 = 0;
+void Imu::calcChecksum(char* data, int size, uint16_t* checksum) {
+    uint16_t checksum_byte1 = 0;
+    uint16_t checksum_byte2 = 0;
     for(int i=0; i<size; i++) {
         checksum_byte1 += data[i];
         checksum_byte2 += checksum_byte1;
     }
-    checksum[0] = checksum_byte1;
-    checksum[1] = checksum_byte2;
+    *checksum = (checksum_byte1 << 8) + checksum_byte2;
 }

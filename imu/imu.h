@@ -39,7 +39,7 @@ class Imu{
         Imu();
         ~Imu();
         void printHexByte(char byte);
-        void calcChecksum(char* data, int size, char* checksum);
+        void calcChecksum(char* data, int size, uint16_t* checksum);
         int readComPort(unsigned char* bytes, int size);
         int writeComPort(unsigned char* bytes, int size);
         void sendCmd(char* data, int size, char* reply, int reply_size);
