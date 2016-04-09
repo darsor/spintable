@@ -59,17 +59,38 @@ struct cameraPacket {
 };
 
 struct encoderPacket {
-    uint32_t length = 18;
+    uint32_t length = 22;
     uint16_t id = 4;
     uint32_t sysTimeSeconds;
     uint32_t sysTimeuSeconds;
     float motorHz;
+    float position;
 };
 
-struct motorPacket {
+/*
+struct cmdSpeed {
+    uint16_t length;
+    uint16_t id;
     int16_t speed;
+};
+
+struct cmdPosition {
+    uint16_t length;
+    uint16_t id;
+    float position;
+};
+
+struct cmdRelativePosition {
+    uint16_t length;
+    uint16_t id;
+    float position;
+};
+
+struct cmdSetHome {
+    uint16_t length;
     uint16_t id;
 };
+*/
 
 class Cosmos {
 
