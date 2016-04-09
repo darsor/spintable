@@ -11,6 +11,7 @@
 #include <cstdio>
 #include <csignal>
 #include <cerrno>
+#include <cmath>
 
 // gather data from various sensors
 void gps(timePacket &p);
@@ -19,35 +20,73 @@ void encoder(encoderPacket &p);
 
 // convert data to network byte order
 void convertTimeData(timePacket &p, char buffer[18]);
-void convertEncoderData(encoderPacket &p, char buffer[18]);
+void convertEncoderData(encoderPacket &p, char buffer[22]);
 
 // send packets
 int sendTimePacket(timePacket &p, Cosmos &cosmos);
 int sendEncoderPacket(encoderPacket &p, Cosmos &cosmos);
 
-// control motor
-void setSpeed(DCMotor &motor, motorPacket &p);
-
-// initialize COSMOS
-// this is global for now so that the motor can access it
+// initialize COSMOS and devices
+// these are global for now so that the motor can access them
 Cosmos cosmos(8321);
+Decoder decoder;
 
 PI_THREAD (motorControl) {
-    static char motorBuffer[4];
-    static motorPacket mPacket;
+    static char buffer[6];
+    static uint16_t length;
+    static uint16_t id;
+    static int16_t speed;
+    static float pos;
+    unsigned char* a;
     static DCMotor motor(2, 0x60, 1600);
-    int16_t speed;
-    uint16_t id;
     while (true) {
-        while (cosmos.recvPacket(motorBuffer, 4) != 0) { // keep trying until the receive works
-            usleep(10000); // don't overload processor if this starts looping
+//      while (cosmos.recvPacket(motorBuffer, 4) != 0) { // keep trying until the receive works
+//          usleep(10000); // don't overload processor if this starts looping
+//      }
+        // receive the first two bytes (the length of the packet);
+        if (cosmos.recvPacket(buffer, 2) != 0) {
+            // if connection was lost, sending packets will fail and then try to reconnect
+            motor.setSpeed(0);
+            usleep(5000000);
+        } else {
+            length = ntohs(*((uint16_t*)buffer));
+            printf("length of packet received: %d\n", length);
+            // receive the rest of the packet
+            cosmos.recvPacket(buffer, length);
+            // get the id to know what command it is
+            id = ntohs(*((uint16_t*)buffer));
         }
-        mPacket.speed = ntohs(*((int16_t*)motorBuffer));
-        mPacket.id = ntohs(*((uint16_t*)(motorBuffer+2)));
-        if (mPacket.id == 1)
-            if (mPacket.speed != motor.getSpeed())
-                motor.setGradSpeed(mPacket.speed);
-        usleep(20000);
+        switch (id) {
+            case 1:
+                decoder.clearCntr();
+                break;
+            case 2:
+                speed = ntohs(*((int16_t*)(buffer+2)));
+                printf("received command to change speed to %d\n", speed);
+                if (speed != motor.getSpeed())
+                    motor.setGradSpeed(speed);
+                break;
+            case 3:
+                a = (unsigned char*) &pos;
+                a[0] = buffer[5];
+                a[1] = buffer[4];
+                a[2] = buffer[3];
+                a[3] = buffer[2];
+                printf("received command to change absolute position to %f\n", pos);
+                break;
+            case 4:
+                a = (unsigned char*) &pos;
+                a[0] = buffer[5];
+                a[1] = buffer[4];
+                a[2] = buffer[3];
+                a[3] = buffer[2];
+                printf("received command to change relative position by %f\n", pos);
+                break;
+            default:
+                printf("unknown command received\n");
+        }
+        id = 0;
+        usleep(50000);
     }
 }
 
@@ -71,11 +110,12 @@ int main() {
     while (true) {
 
         // get timestamps and send time packet
-//      gps(tPacket);
+        gps(tPacket);
         systemTimestamp(tPacket.sysTimeSeconds, tPacket.sysTimeuSeconds);
         if (sendTimePacket(tPacket, cosmos) != 0) {
             printf("lost connection to COSMOS\n");
-            return 1;
+            cosmos.acceptConnection();
+            printf("reconnected to COSMOS\n");
         }
 
         // every second, do this 50 times
@@ -85,7 +125,7 @@ int main() {
                 // (it's needed to calculate the speed)
             encoder(ePacket);
             sendEncoderPacket(ePacket, cosmos);
-            usleep(10000); // TODO: fine tune the delay
+            usleep(17500); // TODO: fine tune the delay
         }
     }
     return 0;
@@ -105,16 +145,20 @@ void systemTimestamp(uint32_t &stime, uint32_t &ustime) {
 }
 
 void encoder(encoderPacket &p) {
-    static Decoder decoder;
     static unsigned int i;
     static double times[4];
     static uint32_t ticks[4];
+    static const unsigned int CNT_PER_REV = 2400;
+    static const double DEG_PER_CNT = 360.0/CNT_PER_REV;
     ticks[i] = decoder.readCntr();
     times[i] = p.sysTimeSeconds + (p.sysTimeuSeconds/1000000.0);
 
     //printf("calculating (%d-%d)/(%f-%f)\n", ticks[i], ticks[(i+1)%4], times[i], times[(i+1)%4]);
     p.motorHz = ( ((int) ticks[i] - (int) ticks[(i+1)%4]) / (times[i] - times[(i+1)%4]) ) / 2457.6;
+    p.position = (ticks[i] % CNT_PER_REV) * DEG_PER_CNT;
     //printf("motorHz: %f\n", p.motorHz);
+    //printf("position: %f\n", p.position);
+    //printf("\n");
     
     if (++i > 3) i = 0;
 }
@@ -134,7 +178,7 @@ void convertTimeData(timePacket &p, char buffer[18]) {
     memcpy(buffer+14, &u32, 4);
 }
 
-void convertEncoderData(encoderPacket &p, char buffer[18]) {
+void convertEncoderData(encoderPacket &p, char buffer[22]) {
     static uint16_t u16;
     static uint32_t u32;
     static float r;
@@ -153,6 +197,12 @@ void convertEncoderData(encoderPacket &p, char buffer[18]) {
     d[2] = s[1];
     d[3] = s[0];
     memcpy(buffer+14, &r, 4);
+    s = (unsigned char *)&p.position;
+    d[0] = s[3];
+    d[1] = s[2];
+    d[2] = s[1];
+    d[3] = s[0];
+    memcpy(buffer+18, &r, 4);
 }
 
 int sendTimePacket(timePacket &p, Cosmos &cosmos) {
@@ -162,15 +212,7 @@ static char timeBuffer[18];
 }
 
 int sendEncoderPacket(encoderPacket &p, Cosmos &cosmos) {
-    static char encoderBuffer[18];
+    static char encoderBuffer[22];
     convertEncoderData(p, encoderBuffer);
     return cosmos.sendPacket(encoderBuffer, sizeof(encoderBuffer));
-}
-
-void setSpeed(DCMotor &motor, motorPacket &p) {
-    static int speed = 0;
-    if (speed != p.speed) {
-        speed = p.speed;
-        motor.setGradSpeed(speed);
-    }
 }
