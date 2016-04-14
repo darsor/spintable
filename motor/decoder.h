@@ -1,4 +1,4 @@
-//Header file for the Decoder Class
+// header file for the Decoder Class
 #ifndef DECODER_H
 #define DECODER_H
 
@@ -12,7 +12,7 @@ class Decoder{
         unsigned char data[5];
     public:
         Decoder();
-        uint32_t readCntr();
+        int32_t readCntr();
         void clearCntr();
 };
 

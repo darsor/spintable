@@ -1,26 +1,28 @@
-//Implementation file for the Decoder
+// implementation file for the decoder
 #include <wiringPiSPI.h>
 #include "decoder.h"
+#include <unistd.h>
 #include <cstdlib>
 #include <cstdio>
 #include <mutex>
-#include <unistd.h>
 
 std::mutex rw_mutex;
 
-//Decoder constructor
+// decoder constructor
 Decoder::Decoder(){
     system("gpio load spi");// loads the spi device on the RasPi
     wiringPiSPISetup(0,1000000);//Sets up the spi device
 //  if (wiringPiSPISetup(0,1000000) < 0)
 //      perror("ERROR opening device");
+    rw_mutex.lock();
     data[0]=0x88; // hexadecimal codes required for Decoder setup
     data[1]=0x01;
     wiringPiSPIDataRW(0, data, 2);//writes to the spi device.
+    rw_mutex.unlock();
     //clearCntr();
 }
 
-//Clears the count on the Decoder
+// clears the count on the Decoder
 void Decoder::clearCntr(){
     rw_mutex.lock();
     data[0]=0x20;// hexadecimal code to clear the Decoder
@@ -28,10 +30,10 @@ void Decoder::clearCntr(){
     rw_mutex.unlock();
 }
 
-//Reads the count coming from the Decoder.  The first byte is the
-//command to read data.  The following zeros are needed to collect
-//the data because of the way SPI works
-uint32_t Decoder::readCntr(){
+// Reads the count coming from the Decoder.  The first byte is the
+// command to read data.  The following zeros are needed to collect
+// the data because of the way SPI works
+int32_t Decoder::readCntr(){
     rw_mutex.lock();
     data[0]=0x60; 
     data[1]=0x00;
@@ -41,8 +43,8 @@ uint32_t Decoder::readCntr(){
 
     wiringPiSPIDataRW(0, data, 5);
 
-    uint32_t count  = ((uint32_t) data[1] << 24) + ((uint32_t) data[2] << 16);
-    count += ((uint32_t) data[3] << 8)  +  (uint32_t) data[4];
+    int32_t count  = ((int32_t) data[1] << 24) + ((int32_t) data[2] << 16);
+    count += ((int32_t) data[3] << 8)  +  (int32_t) data[4];
     rw_mutex.unlock();
 
     return count; 

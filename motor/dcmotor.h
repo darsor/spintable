@@ -2,6 +2,7 @@
 #define DCMOTOR_H
 
 #include "pwm.h"
+#include "decoder.h"
 
 #define FORWARD     1
 #define BACKWARD    2
@@ -12,25 +13,35 @@ class DCMotor {
     public:
         DCMotor(int channel=2, int addr=0x60, int freq=1600);
         ~DCMotor();
+                        // TODO: mutex functions
 
         void run(int command);
         void setSpeed(int speed);
         void setGradSpeed(int speed);
         void setPin(int pin, int value);
+        void setHome(); // set current position as home
 
-        int getSpeed() {return mSpeed;}
+        int getPwmSpeed() {return pwmSpeed;}
+        double getSpeed(); // return speed in degrees/sec
+        double getPosition(); // return position in degrees from home
 
     private:
+        const unsigned int CNT_PER_REV = 2400;
+        const double DEG_PER_CNT = 360.0/CNT_PER_REV;
+
         int pwmPin;
         int in1Pin;
         int in2Pin;
         int i2cAddr;            // default addr on HAT is 0x60
         int freq;               // default @1600Hz PWM freq
         PWM pwm;
+        Decoder decoder;
 
         int inc;
-        int mSpeed;
-        int mSpeedOld;
+        int pwmSpeed;
+        int pwmSpeedOld;
+        double degSpeed;
+        double degPosition;
 };
 
 #endif

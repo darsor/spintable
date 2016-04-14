@@ -1,7 +1,6 @@
 #include "cosmos/cosmos.h"
 #include "gps/gps.h"
 #include "motor/dcmotor.h"
-#include "encoder/decoder.h"
 #include <wiringPi.h>
 #include <sys/types.h> 
 #include <sys/time.h>
@@ -29,7 +28,8 @@ int sendEncoderPacket(encoderPacket &p, Cosmos &cosmos);
 // initialize COSMOS and devices
 // these are global for now so that the motor can access them
 Cosmos cosmos(8321);
-Decoder decoder;
+DCMotor motor(2, 0x60, 1600);
+                                    // TODO: mutex motor functions
 
 PI_THREAD (motorControl) {
     static char buffer[6];
@@ -38,7 +38,6 @@ PI_THREAD (motorControl) {
     static int16_t speed;
     static float pos;
     unsigned char* a;
-    static DCMotor motor(2, 0x60, 1600);
     while (true) {
 //      while (cosmos.recvPacket(motorBuffer, 4) != 0) { // keep trying until the receive works
 //          usleep(10000); // don't overload processor if this starts looping
@@ -58,13 +57,12 @@ PI_THREAD (motorControl) {
         }
         switch (id) {
             case 1:
-                decoder.clearCntr();
+                motor.setHome();
                 break;
             case 2:
                 speed = ntohs(*((int16_t*)(buffer+2)));
                 printf("received command to change speed to %d\n", speed);
-                if (speed != motor.getSpeed())
-                    motor.setGradSpeed(speed);
+                motor.setGradSpeed(speed);
                 break;
             case 3:
                 a = (unsigned char*) &pos;
@@ -121,8 +119,6 @@ int main() {
         // every second, do this 50 times
         for (int j=0; j<50; j++) {
             systemTimestamp(ePacket.sysTimeSeconds, ePacket.sysTimeuSeconds);
-                // NOTE: always get the timestamp right before reading the encoder
-                // (it's needed to calculate the speed)
             encoder(ePacket);
             sendEncoderPacket(ePacket, cosmos);
             usleep(17500); // TODO: fine tune the delay
@@ -145,22 +141,15 @@ void systemTimestamp(uint32_t &stime, uint32_t &ustime) {
 }
 
 void encoder(encoderPacket &p) {
-    static unsigned int i;
-    static double times[4];
-    static uint32_t ticks[4];
-    static const unsigned int CNT_PER_REV = 2400;
-    static const double DEG_PER_CNT = 360.0/CNT_PER_REV;
-    ticks[i] = decoder.readCntr();
-    times[i] = p.sysTimeSeconds + (p.sysTimeuSeconds/1000000.0);
+    // TODO finish putting this stuff in motor.cpp
 
     //printf("calculating (%d-%d)/(%f-%f)\n", ticks[i], ticks[(i+1)%4], times[i], times[(i+1)%4]);
-    p.motorHz = ( ((int) ticks[i] - (int) ticks[(i+1)%4]) / (times[i] - times[(i+1)%4]) ) / 2457.6;
-    p.position = (ticks[i] % CNT_PER_REV) * DEG_PER_CNT;
-    //printf("motorHz: %f\n", p.motorHz);
+    p.motorSpeed = motor.getSpeed();
+    p.position = motor.getPosition();
+    //printf("motorSpeed: %f\n", p.motorSpeed);
     //printf("position: %f\n", p.position);
     //printf("\n");
     
-    if (++i > 3) i = 0;
 }
 
 void convertTimeData(timePacket &p, char buffer[18]) {
@@ -182,7 +171,7 @@ void convertEncoderData(encoderPacket &p, char buffer[22]) {
     static uint16_t u16;
     static uint32_t u32;
     static float r;
-    unsigned char *s = (unsigned char *)&p.motorHz;
+    unsigned char *s = (unsigned char *)&p.motorSpeed;
     unsigned char *d = (unsigned char *)&r;
     u32 = htonl(p.length);
     memcpy(buffer+0,  &u32, 4);
@@ -193,7 +182,7 @@ void convertEncoderData(encoderPacket &p, char buffer[22]) {
     u32 = htonl(p.sysTimeuSeconds);
     memcpy(buffer+10, &u32, 4);
     d[0] = s[3];
-    d[1] = s[2];
+    d[1] = s[2];    // TODO: try htonl for floats
     d[2] = s[1];
     d[3] = s[0];
     memcpy(buffer+14, &r, 4);

@@ -1,9 +1,13 @@
 #include "dcmotor.h"
+#include <sys/time.h>
 #include <unistd.h>
 #include <cstdlib>
 #include <cstdio>
+#include <mutex>
 
-DCMotor::DCMotor(int channel, int addr, int freq) : pwm(addr) {
+std::mutex motor_mutex;
+
+DCMotor::DCMotor(int channel, int addr, int freq) : pwm(addr), decoder() {
     if (channel == 0) {
         pwmPin = 8;
         in2Pin = 9;
@@ -23,8 +27,8 @@ DCMotor::DCMotor(int channel, int addr, int freq) : pwm(addr) {
     } else printf("ERROR: incorrect motor channel, must be between 0-3\n");
 
 	i2cAddr = addr;
-    mSpeed = 0;
-    mSpeedOld = 0;
+    pwmSpeed = 0;
+    pwmSpeedOld = 0;
     pwm.setPWMFreq(freq); // default @1600Hz PWM freq
     run(RELEASE);
 }
@@ -52,7 +56,7 @@ void DCMotor::setSpeed(int speed) {
 	if (speed < 0) speed = 0;
 	if (speed > 255) speed = 255;
 	pwm.setPWM(pwmPin, 0, speed * 16);
-    mSpeed = speed;
+    pwmSpeed = speed;
 }
 
 void DCMotor::setGradSpeed(int speed) {
@@ -61,13 +65,13 @@ void DCMotor::setGradSpeed(int speed) {
     } else if (speed < -255) {
         speed = -255;
     }
-    //printf("speed changing from %d to %d\n", mSpeedOld, speed);
+    //printf("speed changing from %d to %d\n", pwmSpeedOld, speed);
 
-    if (speed < mSpeedOld) inc = -1;
+    if (speed < pwmSpeedOld) inc = -1;
     else inc = 1;
 
-    for (int i=mSpeedOld; i != speed ; i += inc) {
-        //printf("old speed: %d, current speed: %d, new speed: %d\n", mSpeedOld, i, speed);
+    for (int i=pwmSpeedOld; i != speed ; i += inc) {
+        //printf("old speed: %d, current speed: %d, new speed: %d\n", pwmSpeedOld, i, speed);
         if (i < 0) {
             run(BACKWARD);
         }
@@ -81,7 +85,7 @@ void DCMotor::setGradSpeed(int speed) {
     if (speed == 0) {
         run(RELEASE);
     }
-    mSpeedOld = speed;
+    pwmSpeedOld = speed;
 }
 
 void DCMotor::setPin(int pin, int value) {
@@ -95,4 +99,37 @@ void DCMotor::setPin(int pin, int value) {
     }
 	if (value == 0) pwm.setPWM(pin, 0, 4096);
 	if (value == 1) pwm.setPWM(pin, 4096, 0);
+}
+
+void DCMotor::setHome() {
+    decoder.clearCntr();
+}
+
+double DCMotor::getSpeed() {
+    // TODO: test this
+    static struct timeval timeVal;
+    static struct timezone timeZone;
+    static unsigned int i;
+    static double times[4];
+    static int32_t ticks[4];
+    motor_mutex.lock();
+    gettimeofday(&timeVal, &timeZone);
+    times[i] =  timeVal.tv_sec + (timeVal.tv_usec/1000000.0);
+    ticks[i] = decoder.readCntr();
+
+    degSpeed = ( (ticks[i] - ticks[(i+1)%4]) /
+                 (times[i] - times[(i+1)%4]) ) * DEG_PER_CNT;
+
+    if (++i > 3) i = 0;
+    motor_mutex.unlock();
+
+    return degSpeed;
+}
+
+// return position in degrees from home
+double DCMotor::getPosition() {
+    int count = decoder.readCntr();
+    degPosition = (count % (int) CNT_PER_REV) * DEG_PER_CNT;
+    if (count < 0) degPosition += 360;
+    return degPosition;
 }

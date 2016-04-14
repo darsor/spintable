@@ -179,30 +179,6 @@ cosmos/cosmos.cpp.s:
 	$(MAKE) -f CMakeFiles/sensor.dir/build.make CMakeFiles/sensor.dir/cosmos/cosmos.cpp.s
 .PHONY : cosmos/cosmos.cpp.s
 
-encoder/decoder.o: encoder/decoder.cpp.o
-.PHONY : encoder/decoder.o
-
-# target to build an object file
-encoder/decoder.cpp.o:
-	$(MAKE) -f CMakeFiles/motor.dir/build.make CMakeFiles/motor.dir/encoder/decoder.cpp.o
-.PHONY : encoder/decoder.cpp.o
-
-encoder/decoder.i: encoder/decoder.cpp.i
-.PHONY : encoder/decoder.i
-
-# target to preprocess a source file
-encoder/decoder.cpp.i:
-	$(MAKE) -f CMakeFiles/motor.dir/build.make CMakeFiles/motor.dir/encoder/decoder.cpp.i
-.PHONY : encoder/decoder.cpp.i
-
-encoder/decoder.s: encoder/decoder.cpp.s
-.PHONY : encoder/decoder.s
-
-# target to generate assembly for a file
-encoder/decoder.cpp.s:
-	$(MAKE) -f CMakeFiles/motor.dir/build.make CMakeFiles/motor.dir/encoder/decoder.cpp.s
-.PHONY : encoder/decoder.cpp.s
-
 gps/gps.o: gps/gps.cpp.o
 .PHONY : gps/gps.o
 
@@ -277,6 +253,30 @@ motor/dcmotor.s: motor/dcmotor.cpp.s
 motor/dcmotor.cpp.s:
 	$(MAKE) -f CMakeFiles/motor.dir/build.make CMakeFiles/motor.dir/motor/dcmotor.cpp.s
 .PHONY : motor/dcmotor.cpp.s
+
+motor/decoder.o: motor/decoder.cpp.o
+.PHONY : motor/decoder.o
+
+# target to build an object file
+motor/decoder.cpp.o:
+	$(MAKE) -f CMakeFiles/motor.dir/build.make CMakeFiles/motor.dir/motor/decoder.cpp.o
+.PHONY : motor/decoder.cpp.o
+
+motor/decoder.i: motor/decoder.cpp.i
+.PHONY : motor/decoder.i
+
+# target to preprocess a source file
+motor/decoder.cpp.i:
+	$(MAKE) -f CMakeFiles/motor.dir/build.make CMakeFiles/motor.dir/motor/decoder.cpp.i
+.PHONY : motor/decoder.cpp.i
+
+motor/decoder.s: motor/decoder.cpp.s
+.PHONY : motor/decoder.s
+
+# target to generate assembly for a file
+motor/decoder.cpp.s:
+	$(MAKE) -f CMakeFiles/motor.dir/build.make CMakeFiles/motor.dir/motor/decoder.cpp.s
+.PHONY : motor/decoder.cpp.s
 
 motor/pwm.o: motor/pwm.cpp.o
 .PHONY : motor/pwm.o
@@ -414,9 +414,6 @@ help:
 	@echo "... cosmos/cosmos.o"
 	@echo "... cosmos/cosmos.i"
 	@echo "... cosmos/cosmos.s"
-	@echo "... encoder/decoder.o"
-	@echo "... encoder/decoder.i"
-	@echo "... encoder/decoder.s"
 	@echo "... gps/gps.o"
 	@echo "... gps/gps.i"
 	@echo "... gps/gps.s"
@@ -426,6 +423,9 @@ help:
 	@echo "... motor/dcmotor.o"
 	@echo "... motor/dcmotor.i"
 	@echo "... motor/dcmotor.s"
+	@echo "... motor/decoder.o"
+	@echo "... motor/decoder.i"
+	@echo "... motor/decoder.s"
 	@echo "... motor/pwm.o"
 	@echo "... motor/pwm.i"
 	@echo "... motor/pwm.s"
