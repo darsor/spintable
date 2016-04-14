@@ -3,6 +3,7 @@
 
 #include "pwm.h"
 #include "decoder.h"
+#include <atomic>
 
 #define FORWARD     1
 #define BACKWARD    2
@@ -25,9 +26,20 @@ class DCMotor {
         double getSpeed(); // return speed in degrees/sec
         double getPosition(); // return position in degrees from home
 
+        void stopPID();
+        void pidPosition(double setPosition);
+        void pidSpeed(double speed);
+
     private:
+        void posPID();
+        void speedPID();
+        double setPos;
+        double setSpd;
+        std::atomic<bool> runningPID;
+
         const unsigned int CNT_PER_REV = 2400;
         const double DEG_PER_CNT = 360.0/CNT_PER_REV;
+
 
         int pwmPin;
         int in1Pin;

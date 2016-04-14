@@ -1,11 +1,14 @@
 #include "dcmotor.h"
+#include "pid.h"
 #include <sys/time.h>
 #include <unistd.h>
+#include <thread>
 #include <cstdlib>
 #include <cstdio>
 #include <mutex>
 
-std::mutex motor_mutex;
+std::mutex speed_mutex;
+std::mutex pos_mutex;
 
 DCMotor::DCMotor(int channel, int addr, int freq) : pwm(addr), decoder() {
     if (channel == 0) {
@@ -27,6 +30,7 @@ DCMotor::DCMotor(int channel, int addr, int freq) : pwm(addr), decoder() {
     } else printf("ERROR: incorrect motor channel, must be between 0-3\n");
 
 	i2cAddr = addr;
+    runningPID.store(false);
     pwmSpeed = 0;
     pwmSpeedOld = 0;
     pwm.setPWMFreq(freq); // default @1600Hz PWM freq
@@ -53,9 +57,18 @@ void DCMotor::run(int command) {
 }
 
 void DCMotor::setSpeed(int speed) {
-	if (speed < 0) speed = 0;
+	if (speed < -255) speed = -255;
 	if (speed > 255) speed = 255;
-	pwm.setPWM(pwmPin, 0, speed * 16);
+    if (speed > 0) {
+        run(BACKWARD);
+        pwm.setPWM(pwmPin, 0, speed * 16);
+    } else if (speed < 0) {
+        run(FORWARD);
+        pwm.setPWM(pwmPin, 0, abs(speed) * 16);
+    }
+    else if (speed == 0) {
+        run(RELEASE);
+    }
     pwmSpeed = speed;
 }
 
@@ -72,18 +85,8 @@ void DCMotor::setGradSpeed(int speed) {
 
     for (int i=pwmSpeedOld; i != speed ; i += inc) {
         //printf("old speed: %d, current speed: %d, new speed: %d\n", pwmSpeedOld, i, speed);
-        if (i < 0) {
-            run(BACKWARD);
-        }
-        else { run(FORWARD);
-        }
-
-        setSpeed(abs(i));
+        setSpeed(i);
         usleep(6000);
-    }
-
-    if (speed == 0) {
-        run(RELEASE);
     }
     pwmSpeedOld = speed;
 }
@@ -106,13 +109,22 @@ void DCMotor::setHome() {
 }
 
 double DCMotor::getSpeed() {
-    // TODO: test this
+    static bool initialized = false;
     static struct timeval timeVal;
     static struct timezone timeZone;
     static unsigned int i;
     static double times[4];
     static int32_t ticks[4];
-    motor_mutex.lock();
+    if (!initialized) { // the first time, populate these arrays
+        for (int j=0; j<4; j++) {
+            gettimeofday(&timeVal, &timeZone);
+            times[j] =  timeVal.tv_sec + (timeVal.tv_usec/1000000.0);
+            ticks[j] = decoder.readCntr();
+            usleep(5000);
+        }
+        initialized = true;
+    }
+    speed_mutex.lock();
     gettimeofday(&timeVal, &timeZone);
     times[i] =  timeVal.tv_sec + (timeVal.tv_usec/1000000.0);
     ticks[i] = decoder.readCntr();
@@ -121,15 +133,68 @@ double DCMotor::getSpeed() {
                  (times[i] - times[(i+1)%4]) ) * DEG_PER_CNT;
 
     if (++i > 3) i = 0;
-    motor_mutex.unlock();
+    speed_mutex.unlock();
 
     return degSpeed;
 }
 
-// return position in degrees from home
+// return the current position in degrees from home
 double DCMotor::getPosition() {
+    pos_mutex.lock();
     int count = decoder.readCntr();
     degPosition = (count % (int) CNT_PER_REV) * DEG_PER_CNT;
     if (count < 0) degPosition += 360;
+    pos_mutex.unlock();
     return degPosition;
+}
+
+void DCMotor::posPID() {
+    printf("starting pid for position %f\n", setPos);
+    PID pid(0.02, 2, 0.8, 0);
+    //pid.setLimits(-30, 30);
+    pid.setDampening(-0.08, 0.08);
+    double output;
+    while (runningPID.load()) {
+        pid.update(setPos, getPosition());
+        output = pid.getOutput();
+        setSpeed((int) output);
+        //setSpeed((int) pid.getOutput());
+        printf("setPoint: %-.4f, proccessValue: %-.4f, output: %-.4f\n", setPos, getPosition(), output);
+        usleep(20000);
+    }
+}
+
+void DCMotor::speedPID() {
+    printf("starting pid for speed %f\n", setSpd);
+    PID pid(0.02, 0.08, 0, 0);
+    //pid.setLimits(-30, 30);
+    //pid.setDampening(-0.08, 0.08);
+    double output;
+    while (runningPID.load()) {
+        pid.update(setSpd, getSpeed());
+        output = pid.getOutput();
+        setSpeed((int) output + pwmSpeed);
+        //setSpeed((int) pid.getOutput() + pwmSpeed);
+        printf("setPoint: %-.4f, proccessValue: %-.4f, output: %-.4f\n", setSpd, getSpeed(), output);
+        usleep(20000);
+    }
+}
+
+void DCMotor::stopPID() {
+    runningPID.store(false);
+    usleep(50000);
+}
+
+void DCMotor::pidPosition(double position) {
+    setPos = position;
+    runningPID.store(true);
+    std::thread thr(&DCMotor::posPID, this);
+    thr.detach();
+}
+
+void DCMotor::pidSpeed(double speed) {
+    setSpd = speed;
+    runningPID.store(true);
+    std::thread thr(&DCMotor::speedPID, this);
+    thr.detach();
 }

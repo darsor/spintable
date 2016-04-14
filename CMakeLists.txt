@@ -7,6 +7,8 @@ set (COMMON_LIBS ${EXTRA_LIBS} wiringPi)
 
 set (SENSOR_LIBS ASICamera)
 
+set (MOTOR_LIBS pthread)
+
 set(COMMON_SOURCES
     gps/gps.cpp
     cosmos/cosmos.cpp

@@ -141,15 +141,8 @@ void systemTimestamp(uint32_t &stime, uint32_t &ustime) {
 }
 
 void encoder(encoderPacket &p) {
-    // TODO finish putting this stuff in motor.cpp
-
-    //printf("calculating (%d-%d)/(%f-%f)\n", ticks[i], ticks[(i+1)%4], times[i], times[(i+1)%4]);
     p.motorSpeed = motor.getSpeed();
     p.position = motor.getPosition();
-    //printf("motorSpeed: %f\n", p.motorSpeed);
-    //printf("position: %f\n", p.position);
-    //printf("\n");
-    
 }
 
 void convertTimeData(timePacket &p, char buffer[18]) {
@@ -182,7 +175,7 @@ void convertEncoderData(encoderPacket &p, char buffer[22]) {
     u32 = htonl(p.sysTimeuSeconds);
     memcpy(buffer+10, &u32, 4);
     d[0] = s[3];
-    d[1] = s[2];    // TODO: try htonl for floats
+    d[1] = s[2];
     d[2] = s[1];
     d[3] = s[0];
     memcpy(buffer+14, &r, 4);
