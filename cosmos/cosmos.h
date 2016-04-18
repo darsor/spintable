@@ -59,12 +59,14 @@ struct cameraPacket {
 };
 
 struct encoderPacket {
-    uint32_t length = 22;
+    uint32_t length = 30;
     uint16_t id = 4;
     uint32_t sysTimeSeconds;
     uint32_t sysTimeuSeconds;
+    int32_t raw_cnt;
     float motorSpeed;
     float position;
+    uint32_t rev_cnt;
 };
 
 class Cosmos {

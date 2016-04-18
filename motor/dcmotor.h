@@ -3,6 +3,7 @@
 
 #include "pwm.h"
 #include "decoder.h"
+#include <unistd.h>
 #include <atomic>
 
 #define FORWARD     1
@@ -25,6 +26,7 @@ class DCMotor {
         int getPwmSpeed() {return pwmSpeed;}
         double getSpeed(); // return speed in degrees/sec
         double getPosition(); // return position in degrees from home
+        int32_t getCnt();
 
         void stopPID();
         void pidPosition(double setPosition);

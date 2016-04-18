@@ -149,6 +149,10 @@ double DCMotor::getPosition() {
     return degPosition;
 }
 
+int32_t DCMotor::getCnt() {
+    return decoder.readCntr();
+}
+
 void DCMotor::posPID() {
     printf("starting pid for position %f\n", setPos);
     PID pid(0.02, 1, 0.04, 0);

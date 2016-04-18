@@ -19,7 +19,7 @@ void encoder(encoderPacket &p);
 
 // convert data to network byte order
 void convertTimeData(timePacket &p, char buffer[18]);
-void convertEncoderData(encoderPacket &p, char buffer[22]);
+void convertEncoderData(encoderPacket &p, char buffer[30]);
 inline void endianSwap(float &f) {
     float temp = f;
     unsigned char* pf = (unsigned char*) &f;
@@ -157,8 +157,11 @@ void systemTimestamp(uint32_t &stime, uint32_t &ustime) {
 }
 
 void encoder(encoderPacket &p) {
+    static const unsigned int CNT_PER_REV = 2400;
     p.motorSpeed = motor.getSpeed();
     p.position = motor.getPosition();
+    p.raw_cnt = motor.getCnt();
+    p.rev_cnt = p.raw_cnt / CNT_PER_REV;
 }
 
 void convertTimeData(timePacket &p, char buffer[18]) {
@@ -178,9 +181,10 @@ void convertTimeData(timePacket &p, char buffer[18]) {
     memcpy(buffer+14, &u32, 4);
 }
 
-void convertEncoderData(encoderPacket &p, char buffer[22]) {
+void convertEncoderData(encoderPacket &p, char buffer[30]) {
     static uint16_t u16;
     static uint32_t u32;
+    static int32_t i32;
     static float f;
     u32 = htonl(p.length);
     memcpy(buffer+0,  &u32, 4);
@@ -190,12 +194,16 @@ void convertEncoderData(encoderPacket &p, char buffer[22]) {
     memcpy(buffer+6,  &u32, 4);
     u32 = htonl(p.sysTimeuSeconds);
     memcpy(buffer+10, &u32, 4);
+    i32 = htonl(p.raw_cnt);
+    memcpy(buffer+14, &i32, 4);
     f = p.motorSpeed;
     endianSwap(f);
-    memcpy(buffer+14, &f, 4);
+    memcpy(buffer+18, &f, 4);
     f = p.position;
     endianSwap(f);
-    memcpy(buffer+18, &f, 4);
+    memcpy(buffer+22, &f, 4);
+    u32 = htonl(p.rev_cnt);
+    memcpy(buffer+26, &u32, 4);
 }
 
 int sendTimePacket(timePacket &p, Cosmos &cosmos) {
@@ -205,7 +213,7 @@ static char timeBuffer[18];
 }
 
 int sendEncoderPacket(encoderPacket &p, Cosmos &cosmos) {
-    static char encoderBuffer[22];
+    static char encoderBuffer[30];
     convertEncoderData(p, encoderBuffer);
     return cosmos.sendPacket(encoderBuffer, sizeof(encoderBuffer));
 }
