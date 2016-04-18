@@ -63,9 +63,9 @@ int main() {
     tam(sPacket);
     gps(tPacket);
 
-    if (piThreadCreate(cameraControl) != 0) {
-        perror("Camera control thread didn't start");
-    }
+    //if (piThreadCreate(cameraControl) != 0) {
+        //perror("Camera control thread didn't start");
+    //}
 
     while (true) {
 
@@ -123,12 +123,14 @@ void systemTimestamp(uint32_t &stime, uint32_t &ustime) {
 void convertTimeData(timePacket &p, char buffer[18]) {
     uint16_t u16;
     uint32_t u32;
+    float f;
     u32 = htonl(p.length);
     memcpy(buffer+0,  &u32, 4);
     u16 = htons(p.id);
     memcpy(buffer+4,  &u16, 2);
-    u32 = htonl(p.gpsTime);
-    memcpy(buffer+6,  &u32, 4);
+    f = p.gpsTime;
+    endianSwap(f);
+    memcpy(buffer+6,  &f, 4);
     u32 = htonl(p.sysTimeSeconds);
     memcpy(buffer+10,  &u32, 4);
     u32 = htonl(p.sysTimeuSeconds);
