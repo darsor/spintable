@@ -20,15 +20,6 @@ void encoder(encoderPacket &p);
 // convert data to network byte order
 void convertTimeData(timePacket &p, char buffer[18]);
 void convertEncoderData(encoderPacket &p, char buffer[30]);
-inline void endianSwap(float &f) {
-    float temp = f;
-    unsigned char* pf = (unsigned char*) &f;
-    unsigned char* pt = (unsigned char*) &temp;
-    pf[0] = pt[3];
-    pf[1] = pt[2];
-    pf[2] = pt[1];
-    pf[3] = pt[0];
-}
 
 // send packets
 int sendTimePacket(timePacket &p, Cosmos &cosmos);

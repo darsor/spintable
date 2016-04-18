@@ -5,6 +5,16 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+inline void endianSwap(float &f) {
+    float temp = f;
+    unsigned char* pf = (unsigned char*) &f;
+    unsigned char* pt = (unsigned char*) &temp;
+    pf[0] = pt[3];
+    pf[1] = pt[2];
+    pf[2] = pt[1];
+    pf[3] = pt[0];
+}
+
 struct timePacket {
     uint32_t length = 18;
     uint16_t id = 1;
