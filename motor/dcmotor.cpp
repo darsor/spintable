@@ -59,15 +59,14 @@ void DCMotor::run(int command) {
 void DCMotor::setSpeed(int speed) {
 	if (speed < -255) speed = -255;
 	if (speed > 255) speed = 255;
-    if (speed > 0) {
+    if (speed == 0) {
+        run(RELEASE);
+    } else if (speed > 0) {
         run(BACKWARD);
         pwm.setPWM(pwmPin, 0, speed * 16);
     } else if (speed < 0) {
         run(FORWARD);
         pwm.setPWM(pwmPin, 0, abs(speed) * 16);
-    }
-    else if (speed == 0) {
-        run(RELEASE);
     }
     pwmSpeed = speed;
 }
@@ -88,6 +87,7 @@ void DCMotor::setGradSpeed(int speed) {
         setSpeed(i);
         usleep(6000);
     }
+    setSpeed(speed);
     pwmSpeedOld = speed;
 }
 
@@ -129,8 +129,8 @@ double DCMotor::getSpeed() {
     times[i] =  timeVal.tv_sec + (timeVal.tv_usec/1000000.0);
     ticks[i] = decoder.readCntr();
 
-    degSpeed = ( (ticks[i] - ticks[(i+1)%4]) /
-                 (times[i] - times[(i+1)%4]) ) * DEG_PER_CNT;
+    degSpeed = 0-( (ticks[i] - ticks[(i+1)%4]) /
+                   (times[i] - times[(i+1)%4]) ) * DEG_PER_CNT;
 
     if (++i > 3) i = 0;
     speed_mutex.unlock();
@@ -142,6 +142,7 @@ double DCMotor::getSpeed() {
 double DCMotor::getPosition() {
     pos_mutex.lock();
     int count = decoder.readCntr();
+    count = 0-count;
     degPosition = (count % (int) CNT_PER_REV) * DEG_PER_CNT;
     if (count < 0) degPosition += 360;
     pos_mutex.unlock();
@@ -150,32 +151,35 @@ double DCMotor::getPosition() {
 
 void DCMotor::posPID() {
     printf("starting pid for position %f\n", setPos);
-    PID pid(0.02, 2, 0.8, 0);
+    PID pid(0.02, 1, 0.04, 0);
     //pid.setLimits(-30, 30);
     pid.setDampening(-0.08, 0.08);
+    pid.setRollover(0, 360);
+    pid.setDeadzone(-13, 13);
     double output;
     while (runningPID.load()) {
         pid.update(setPos, getPosition());
         output = pid.getOutput();
         setSpeed((int) output);
         //setSpeed((int) pid.getOutput());
-        printf("setPoint: %-.4f, proccessValue: %-.4f, output: %-.4f\n", setPos, getPosition(), output);
+        //printf("    setPoint: %-.4f, proccessValue: %-.4f, output: %-.4f\n", setPos, getPosition(), output);
         usleep(20000);
     }
 }
 
 void DCMotor::speedPID() {
     printf("starting pid for speed %f\n", setSpd);
-    PID pid(0.02, 0.08, 0, 0);
-    //pid.setLimits(-30, 30);
+    PID pid(0.02, 0.01, 0.004, 0);
+    pid.setLimits(-20, 20);
     //pid.setDampening(-0.08, 0.08);
     double output;
     while (runningPID.load()) {
         pid.update(setSpd, getSpeed());
         output = pid.getOutput();
-        setSpeed((int) output + pwmSpeed);
+        setSpeed((int) (output + pwmSpeed));
+        printf("pwmSpeed: %d    ", pwmSpeed);
         //setSpeed((int) pid.getOutput() + pwmSpeed);
-        printf("setPoint: %-.4f, proccessValue: %-.4f, output: %-.4f\n", setSpd, getSpeed(), output);
+        printf("setPoint: %-.4f, proccessValue: %-.4f, output: %-.4f    ", setSpd, getSpeed(), output);
         usleep(20000);
     }
 }

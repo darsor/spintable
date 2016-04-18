@@ -20,6 +20,15 @@ void encoder(encoderPacket &p);
 // convert data to network byte order
 void convertTimeData(timePacket &p, char buffer[18]);
 void convertEncoderData(encoderPacket &p, char buffer[22]);
+inline void endianSwap(float &f) {
+    float temp = f;
+    unsigned char* pf = (unsigned char*) &f;
+    unsigned char* pt = (unsigned char*) &temp;
+    pf[0] = pt[3];
+    pf[1] = pt[2];
+    pf[2] = pt[1];
+    pf[3] = pt[0];
+}
 
 // send packets
 int sendTimePacket(timePacket &p, Cosmos &cosmos);
@@ -37,7 +46,7 @@ PI_THREAD (motorControl) {
     static uint16_t id;
     static int16_t speed;
     static float pos;
-    unsigned char* a;
+    static double position;
     while (true) {
 //      while (cosmos.recvPacket(motorBuffer, 4) != 0) { // keep trying until the receive works
 //          usleep(10000); // don't overload processor if this starts looping
@@ -57,28 +66,34 @@ PI_THREAD (motorControl) {
         }
         switch (id) {
             case 1:
+                motor.stopPID();
                 motor.setHome();
                 break;
             case 2:
                 speed = ntohs(*((int16_t*)(buffer+2)));
                 printf("received command to change speed to %d\n", speed);
+                motor.stopPID();
                 motor.setGradSpeed(speed);
                 break;
             case 3:
-                a = (unsigned char*) &pos;
-                a[0] = buffer[5];
-                a[1] = buffer[4];
-                a[2] = buffer[3];
-                a[3] = buffer[2];
+                pos = *( (float*) (buffer+2));
+                endianSwap(pos);
                 printf("received command to change absolute position to %f\n", pos);
+                motor.stopPID();
+                motor.setGradSpeed(0);
+                motor.pidPosition(pos);
                 break;
             case 4:
-                a = (unsigned char*) &pos;
-                a[0] = buffer[5];
-                a[1] = buffer[4];
-                a[2] = buffer[3];
-                a[3] = buffer[2];
+                pos = *( (float*) (buffer+2));
+                endianSwap(pos);
                 printf("received command to change relative position by %f\n", pos);
+                motor.stopPID();
+                motor.setGradSpeed(0);
+                position = motor.getPosition();
+                position += pos;
+                if (position < 360) position += 360;
+                if (position > 360) position -= 360;
+                motor.pidPosition(position);
                 break;
             default:
                 printf("unknown command received\n");
@@ -112,6 +127,7 @@ int main() {
         systemTimestamp(tPacket.sysTimeSeconds, tPacket.sysTimeuSeconds);
         if (sendTimePacket(tPacket, cosmos) != 0) {
             printf("lost connection to COSMOS\n");
+            motor.stopPID();
             cosmos.acceptConnection();
             printf("reconnected to COSMOS\n");
         }
@@ -146,14 +162,16 @@ void encoder(encoderPacket &p) {
 }
 
 void convertTimeData(timePacket &p, char buffer[18]) {
-    uint16_t u16;
-    uint32_t u32;
+    static uint16_t u16;
+    static uint32_t u32;
+    static float f;
     u32 = htonl(p.length);
     memcpy(buffer+0,  &u32, 4);
     u16 = htons(p.id);
     memcpy(buffer+4,  &u16, 2);
-    u32 = htonl(p.gpsTime);
-    memcpy(buffer+6,  &u32, 4);
+    f = p.gpsTime;
+    endianSwap(f);
+    memcpy(buffer+6,  &f, 4);
     u32 = htonl(p.sysTimeSeconds);
     memcpy(buffer+10,  &u32, 4);
     u32 = htonl(p.sysTimeuSeconds);
@@ -163,9 +181,7 @@ void convertTimeData(timePacket &p, char buffer[18]) {
 void convertEncoderData(encoderPacket &p, char buffer[22]) {
     static uint16_t u16;
     static uint32_t u32;
-    static float r;
-    unsigned char *s = (unsigned char *)&p.motorSpeed;
-    unsigned char *d = (unsigned char *)&r;
+    static float f;
     u32 = htonl(p.length);
     memcpy(buffer+0,  &u32, 4);
     u16 = htons(p.id);
@@ -174,17 +190,12 @@ void convertEncoderData(encoderPacket &p, char buffer[22]) {
     memcpy(buffer+6,  &u32, 4);
     u32 = htonl(p.sysTimeuSeconds);
     memcpy(buffer+10, &u32, 4);
-    d[0] = s[3];
-    d[1] = s[2];
-    d[2] = s[1];
-    d[3] = s[0];
-    memcpy(buffer+14, &r, 4);
-    s = (unsigned char *)&p.position;
-    d[0] = s[3];
-    d[1] = s[2];
-    d[2] = s[1];
-    d[3] = s[0];
-    memcpy(buffer+18, &r, 4);
+    f = p.motorSpeed;
+    endianSwap(f);
+    memcpy(buffer+14, &f, 4);
+    f = p.position;
+    endianSwap(f);
+    memcpy(buffer+18, &f, 4);
 }
 
 int sendTimePacket(timePacket &p, Cosmos &cosmos) {

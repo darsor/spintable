@@ -278,6 +278,30 @@ motor/decoder.cpp.s:
 	$(MAKE) -f CMakeFiles/motor.dir/build.make CMakeFiles/motor.dir/motor/decoder.cpp.s
 .PHONY : motor/decoder.cpp.s
 
+motor/pid.o: motor/pid.cpp.o
+.PHONY : motor/pid.o
+
+# target to build an object file
+motor/pid.cpp.o:
+	$(MAKE) -f CMakeFiles/motor.dir/build.make CMakeFiles/motor.dir/motor/pid.cpp.o
+.PHONY : motor/pid.cpp.o
+
+motor/pid.i: motor/pid.cpp.i
+.PHONY : motor/pid.i
+
+# target to preprocess a source file
+motor/pid.cpp.i:
+	$(MAKE) -f CMakeFiles/motor.dir/build.make CMakeFiles/motor.dir/motor/pid.cpp.i
+.PHONY : motor/pid.cpp.i
+
+motor/pid.s: motor/pid.cpp.s
+.PHONY : motor/pid.s
+
+# target to generate assembly for a file
+motor/pid.cpp.s:
+	$(MAKE) -f CMakeFiles/motor.dir/build.make CMakeFiles/motor.dir/motor/pid.cpp.s
+.PHONY : motor/pid.cpp.s
+
 motor/pwm.o: motor/pwm.cpp.o
 .PHONY : motor/pwm.o
 
@@ -426,6 +450,9 @@ help:
 	@echo "... motor/decoder.o"
 	@echo "... motor/decoder.i"
 	@echo "... motor/decoder.s"
+	@echo "... motor/pid.o"
+	@echo "... motor/pid.i"
+	@echo "... motor/pid.s"
 	@echo "... motor/pwm.o"
 	@echo "... motor/pwm.i"
 	@echo "... motor/pwm.s"

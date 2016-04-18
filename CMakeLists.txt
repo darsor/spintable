@@ -28,6 +28,7 @@ set(MOTOR_SOURCES
     motor/dcmotor.cpp
     motor/pwm.cpp
     motor/decoder.cpp
+    motor/pid.cpp
 )
 
 add_executable (sensor ${COMMON_SOURCES} ${SENSOR_SOURCES})

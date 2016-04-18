@@ -47,8 +47,8 @@ Gps::~Gps() {
     serialClose(fd);
 }
 
-uint32_t Gps::getTime() {
-    uint32_t ftime;
+float Gps::getTime() {
+    float ftime;
     // loop until all data is read
     do {
         // jump to beginning of sentence ($)
@@ -62,7 +62,7 @@ uint32_t Gps::getTime() {
         // read until end of sentence (\x0a)
         while ( ((char) serialGetchar(fd)) != '\n');
     } while (serialDataAvail(fd));
-    ftime = atoi(buffer);
+    ftime = atof(buffer);
     //printf("GPS time: %d\n", ftime);
     return ftime;
 }

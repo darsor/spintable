@@ -14,7 +14,7 @@ class Gps {
         Gps();
         Gps(std::string device, int baud);
         ~Gps();
-        uint32_t getTime(); // blocks until the next timestamp sent from GPS
+        float getTime(); // blocks until the next timestamp sent from GPS
 };
 
 #endif
