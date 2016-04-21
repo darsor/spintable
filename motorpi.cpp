@@ -86,6 +86,11 @@ PI_THREAD (motorControl) {
                 if (position > 360) position -= 360;
                 motor.pidPosition(position);
                 break;
+            case 5:
+                motor.stopPID();
+                motor.setGradSpeed(0);
+                motor.gotoIndex();
+                break;
             default:
                 printf("unknown command received\n");
         }

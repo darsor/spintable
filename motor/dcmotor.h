@@ -22,6 +22,7 @@ class DCMotor {
         void setGradSpeed(int speed);
         void setPin(int pin, int value);
         void setHome(); // set current position as home
+        void gotoIndex(); // go to nearest index
 
         int getPwmSpeed() {return pwmSpeed;}
         double getSpeed(); // return speed in degrees/sec

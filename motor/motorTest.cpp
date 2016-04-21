@@ -15,16 +15,17 @@ int main() {
     myMotor.setHome();
 
 	while (true) {
+        /*
 		cout << "Input speed (from -255 to 255): ";
 		cin >> speed;
 
         myMotor.setGradSpeed(speed);
         if (speed == 0) break;
 
-        /*
-        //printf("speed: %-.4f\n", myMotor.getSpeed());
-        for (int i=0; i<3; i++)
+        for (int i=0; i<3; i++) {
             printf("position: %-.4f\n", myMotor.getPosition());
+            printf("speed: %-.4f\n", myMotor.getSpeed());
+        }
         */
 
 
@@ -33,8 +34,10 @@ int main() {
         cin >> position;
         myMotor.stopPID();
         myMotor.pidPosition(position);
-        //printf("position: %-.4f\n", myMotor.getPosition());
+        printf("position: %-.4f\n", myMotor.getPosition());
         */
+        printf("position: %-.4f\n", myMotor.getPosition());
+        usleep(20000);
 
 
         /*

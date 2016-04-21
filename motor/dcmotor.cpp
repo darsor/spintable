@@ -62,10 +62,10 @@ void DCMotor::setSpeed(int speed) {
     if (speed == 0) {
         run(RELEASE);
     } else if (speed > 0) {
-        run(BACKWARD);
+        run(FORWARD);
         pwm.setPWM(pwmPin, 0, speed * 16);
     } else if (speed < 0) {
-        run(FORWARD);
+        run(BACKWARD);
         pwm.setPWM(pwmPin, 0, abs(speed) * 16);
     }
     pwmSpeed = speed;
@@ -106,6 +106,11 @@ void DCMotor::setPin(int pin, int value) {
 
 void DCMotor::setHome() {
     decoder.clearCntr();
+}
+
+// TODO: implement this
+void DCMotor::gotoIndex() {
+    printf("gotoIndex called. Function not yet implemented\n");
 }
 
 double DCMotor::getSpeed() {
