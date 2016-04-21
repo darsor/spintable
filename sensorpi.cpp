@@ -38,9 +38,9 @@ PI_THREAD (cameraControl) {
     while (true) {
         systemTimestamp(cPacket.sysTimeSeconds, cPacket.sysTimeuSeconds);
         camera(cPacket);
-        while (sendCameraPacket(cPacket, cosmos) != 0) {
-            //printf("unable to send camera packet\n");
-            usleep(2000000); // don't overload processor if it looses connection
+        if (sendCameraPacket(cPacket, cosmos) != 0) {
+            printf("camera packet not sent\n");
+            usleep(5000000);
         }
         usleep(40000);
     }
@@ -63,9 +63,9 @@ int main() {
     tam(sPacket);
     gps(tPacket);
 
-    //if (piThreadCreate(cameraControl) != 0) {
-        //perror("Camera control thread didn't start");
-    //}
+    if (piThreadCreate(cameraControl) != 0) {
+        perror("Camera control thread didn't start");
+    }
 
     while (true) {
 

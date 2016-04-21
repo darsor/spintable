@@ -1,6 +1,7 @@
 /////////////////////////////////////////
 //Implementation file for the IMU class//
 /////////////////////////////////////////
+#include "imu.h"
 #include <termios.h> // terminal io (serial port) interface
 #include <fcntl.h>   // File control definitions
 #include <errno.h>   // Error number definitions
@@ -11,7 +12,6 @@
 #include <time.h>
 #include <iostream>
 #include <string>
-#include "imu.h"
 
 // Clears the com port's read and write buffers
 int Purge(ComPortHandle comPortHandle){
@@ -49,7 +49,7 @@ ComPortHandle OpenComPort(const char* comPortPath){
     options.c_lflag = 0; // raw input
     //Time-Outs -- won't work with NDELAY option in the call to open
     options.c_cc[VMIN]  = 0;      // block reading until RX x characers. If x = 0, it is non-blocking.
-    options.c_cc[VTIME] = 10;     // Inter-Character Timer -- i.e. timeout= x*.1 s
+    options.c_cc[VTIME] = 1;     // Inter-Character Timer -- i.e. timeout= x*.1 s
     //Set local mode and enable the receiver
     options.c_cflag |= (CLOCAL | CREAD);
     //Purge serial port buffers
@@ -74,8 +74,11 @@ void CloseComPort(ComPortHandle comPort){
 // read the specified number of bytes from the com port
 int Imu::readComPort(unsigned char* bytes, int size){
     int bytesRead = read(comPort, bytes, size);
+    int temp;
     while (bytesRead<size) {
-        bytesRead += read(comPort, &bytes[bytesRead], size - bytesRead);
+        temp = read(comPort, &bytes[bytesRead], size - bytesRead);
+        bytesRead += temp;
+        if (bytesRead < size && temp == 0) return 0;
     }
     return bytesRead;     
 }
@@ -150,13 +153,12 @@ Imu::Imu(){
 //////////////////////////////////////////////////////////////////////
 void Imu::getdata(Byte (&data)[43]) {
     int size;
-    writeComPort(&dataCommand, 1); // write command to port
-    Purge(comPort); // flush port
+    do {
+        Purge(comPort); // flush port
+        writeComPort(&dataCommand, 1); // write command to port
 
-    size = readComPort(&data[0], 43);
-    if(size<=0){
-        printf("No data read from IMU\n");
-    }
+        size = readComPort(&data[0], 43);
+    } while (size == 0);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -168,13 +170,12 @@ void Imu::getdata(Byte (&data)[43]) {
 ////////////////////////////////////////////////////////////////////
 void Imu::getQuaternion(Byte (&data)[23]) {
     int size;
-    writeComPort(&quatCommand, 1); // write command to port
-    Purge(comPort); // flush port
+    do {
+        Purge(comPort); // flush port
+        writeComPort(&quatCommand, 1); // write command to port
 
-    size = readComPort(&data[0], 23);
-    if(size<=0){
-        printf("No data read from IMU\n");
-    }
+        size = readComPort(&data[0], 23);
+    } while (size == 0);
 }
 
 //Destructor for the IMU class.
