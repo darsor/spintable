@@ -5,6 +5,7 @@
 #include <thread>
 #include <cstdlib>
 #include <cstdio>
+#include <cmath>
 #include <mutex>
 
 std::mutex speed_mutex;
@@ -31,6 +32,7 @@ DCMotor::DCMotor(int channel, int addr, int freq) : pwm(addr), decoder() {
 
 	i2cAddr = addr;
     runningPID.store(false);
+    index_tripped = false;
     pwmSpeed = 0;
     pwmSpeedOld = 0;
     pwm.setPWMFreq(freq); // default @1600Hz PWM freq
@@ -72,6 +74,7 @@ void DCMotor::setSpeed(int speed) {
 }
 
 void DCMotor::setGradSpeed(int speed) {
+    motor.stopPID();
     if (speed > 255 ) {
         speed = 255;
     } else if (speed < -255) {
@@ -105,11 +108,42 @@ void DCMotor::setPin(int pin, int value) {
 }
 
 void DCMotor::setHome() {
+    motor.stopPID();
     decoder.clearCntr();
 }
 
 // TODO: implement this
 void DCMotor::gotoIndex() {
+    motor.stopPID();
+    motor.setGradSpeed(0);
+    /* move this to the constructor
+        wiringPiISR(indexPin, INT_EDGE_RISING, &indexISR)
+     */
+    // index pulses are 75 degrees apart, so the closest index pulse is within 37.5
+    // record starting position
+    double position = getPosition();
+    pidPosition(position);
+    // move right 3.75 degrees, 10 times (with delay of about 200ms)
+    for (int i=0; i<10; i++) {
+        setPos = (setPos + 3.75 > 360) ? setPos + 3.75 - 360 : setPos + 3.75;
+        while (setPos != position);
+        // if the index pulse was triggered, break the loop
+        if (index_tripped) break;
+        usleep(200000);
+    }
+    // if none were triggered, move back to starting position and repeat going left
+    if (!index_tripped) {
+        setPos = position;
+        for (int i=0; i<10; i++) {
+            setPos = (setPos - 3.75 < 0) ? setPos - 3.75 + 360 : setPos - 3.75;
+            while (setPos != position);
+            // if the index pulse was triggered, break the loop
+            if (index_tripped) break;
+            usleep(200000);
+        }
+    }
+    // move left (or right) one quadrature pulse (0.15 degrees) at a time until the index pulse is triggered
+    // record the count the index was triggered on/set setPos/set home 
     printf("gotoIndex called. Function not yet implemented\n");
 }
 
@@ -134,8 +168,8 @@ double DCMotor::getSpeed() {
     times[i] =  timeVal.tv_sec + (timeVal.tv_usec/1000000.0);
     ticks[i] = decoder.readCntr();
 
-    degSpeed = 0-( (ticks[i] - ticks[(i+1)%4]) /
-                   (times[i] - times[(i+1)%4]) ) * DEG_PER_CNT;
+    degSpeed = ( (ticks[i] - ticks[(i+1)%4]) /
+                 (times[i] - times[(i+1)%4]) ) * DEG_PER_CNT;
 
     if (++i > 3) i = 0;
     speed_mutex.unlock();
@@ -147,7 +181,6 @@ double DCMotor::getSpeed() {
 double DCMotor::getPosition() {
     pos_mutex.lock();
     int count = decoder.readCntr();
-    count = 0-count;
     degPosition = (count % (int) CNT_PER_REV) * DEG_PER_CNT;
     if (count < 0) degPosition += 360;
     pos_mutex.unlock();
@@ -199,6 +232,8 @@ void DCMotor::stopPID() {
 }
 
 void DCMotor::pidPosition(double position) {
+    motor.stopPID();
+    motor.setGradSpeed(0);
     setPos = position;
     runningPID.store(true);
     std::thread thr(&DCMotor::posPID, this);
@@ -206,6 +241,7 @@ void DCMotor::pidPosition(double position) {
 }
 
 void DCMotor::pidSpeed(double speed) {
+    stopPID();
     setSpd = speed;
     runningPID.store(true);
     std::thread thr(&DCMotor::speedPID, this);

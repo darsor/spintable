@@ -1,6 +1,8 @@
 #include "pid.h"
 #include <cstdio>
+#include <iostream>
 #include <cstdlib>
+#include <cstring>
 
 PID::PID(double dt, double Kp, double Ki, double Kd) :
     dt(dt), Kp(Kp), Ki(Ki), Kd(Kd) {
@@ -8,11 +10,28 @@ PID::PID(double dt, double Kp, double Ki, double Kd) :
     dampening = false;
     rollover = false;
     deadzone = false;
+    tuning = false;
     integral = 0;
     pError = 0;
 }
 
 void PID::update(double sp, double pv) {
+    if (tuning && sp != setPointOld) {
+        std::string str;
+        std::cout << "Tune constants? [y/n]: ";
+        char r = getchar();
+        getchar();
+        if (r == 'y' || r == 'Y') {
+            std::cout << "Enter new constants (<Kp> <Ki> <Kd>): ";
+            std::cin >> str;
+            Kp = atof(str);
+            std::cin >> str;
+            Ki = atof(str);
+            std::cin >> str;
+            Kd = atof(str);
+        }
+    }
+    setPointOld = sp;
     error = sp-pv;
     if (rollover) {
         if (abs(error) > ((rollHigh - rollLow)/2)) {
@@ -43,6 +62,10 @@ void PID::update(double sp, double pv) {
             }
         }
     }
+}
+
+void changeConstants(double p, double i, double d) {
+    Kp = p; Ki = i; Kd = d;
 }
 
 void PID::setLimits(double low, double high) {

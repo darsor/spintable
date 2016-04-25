@@ -9,12 +9,16 @@ class PID {
         void setDampening(double low, double high);
         void setRollover(double low, double high);
         void setDeadzone(double low, double high);
+        void setTuningMode(bool mode) { tuning = mode; }
+        void changeConstants(double Kp, double Ki, double Kd);
         double getOutput() { return output; }
     private:
         bool outputLimits;
         bool dampening;
         bool rollover;
         bool deadzone;
+        bool tuning;
+        double setPointOld;
         double dt, Kp, Ki, Kd;
         double lower, upper;
         double dampLow, dampHigh;

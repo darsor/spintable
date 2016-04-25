@@ -43,7 +43,6 @@ class DCMotor {
         const unsigned int CNT_PER_REV = 2400;
         const double DEG_PER_CNT = 360.0/CNT_PER_REV;
 
-
         int pwmPin;
         int in1Pin;
         int in2Pin;
@@ -57,6 +56,10 @@ class DCMotor {
         int pwmSpeedOld;
         double degSpeed;
         double degPosition;
+
+        int indexPin;
+        bool index_tripped;
+        void indexISR() { index_tripped = true; }
 };
 
 #endif

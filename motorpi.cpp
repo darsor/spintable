@@ -57,29 +57,23 @@ PI_THREAD (motorControl) {
         }
         switch (id) {
             case 1:
-                motor.stopPID();
                 motor.setHome();
                 break;
             case 2:
                 speed = ntohs(*((int16_t*)(buffer+2)));
                 printf("received command to change speed to %d\n", speed);
-                motor.stopPID();
                 motor.setGradSpeed(speed);
                 break;
             case 3:
                 pos = *( (float*) (buffer+2));
                 endianSwap(pos);
                 printf("received command to change absolute position to %f\n", pos);
-                motor.stopPID();
-                motor.setGradSpeed(0);
                 motor.pidPosition(pos);
                 break;
             case 4:
                 pos = *( (float*) (buffer+2));
                 endianSwap(pos);
                 printf("received command to change relative position by %f\n", pos);
-                motor.stopPID();
-                motor.setGradSpeed(0);
                 position = motor.getPosition();
                 position += pos;
                 if (position < 360) position += 360;
@@ -87,8 +81,6 @@ PI_THREAD (motorControl) {
                 motor.pidPosition(position);
                 break;
             case 5:
-                motor.stopPID();
-                motor.setGradSpeed(0);
                 motor.gotoIndex();
                 break;
             default:
