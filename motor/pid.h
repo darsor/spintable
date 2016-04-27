@@ -10,7 +10,7 @@ class PID {
         void setRollover(double low, double high);
         void setDeadzone(double low, double high);
         void setTuningMode(bool mode) { tuning = mode; }
-        void changeConstants(double Kp, double Ki, double Kd);
+        void changeConstants(double p, double i, double d);
         double getOutput() { return output; }
     private:
         bool outputLimits;

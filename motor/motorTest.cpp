@@ -29,14 +29,11 @@ int main() {
         */
 
 
-        /*
         cout << "Input position (from 0 to 360): ";
         cin >> position;
         myMotor.stopPID();
         myMotor.pidPosition(position);
-        printf("position: %-.4f\n", myMotor.getPosition());
-        */
-        printf("position: %-.4f\n", myMotor.getPosition());
+        //printf("position: %-.4f\n", myMotor.getPosition());
         usleep(20000);
 
 

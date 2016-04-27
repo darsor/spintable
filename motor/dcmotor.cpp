@@ -64,17 +64,17 @@ void DCMotor::setSpeed(int speed) {
     if (speed == 0) {
         run(RELEASE);
     } else if (speed > 0) {
-        run(FORWARD);
+        run(BACKWARD);
         pwm.setPWM(pwmPin, 0, speed * 16);
     } else if (speed < 0) {
-        run(BACKWARD);
+        run(FORWARD);
         pwm.setPWM(pwmPin, 0, abs(speed) * 16);
     }
     pwmSpeed = speed;
 }
 
 void DCMotor::setGradSpeed(int speed) {
-    motor.stopPID();
+    stopPID();
     if (speed > 255 ) {
         speed = 255;
     } else if (speed < -255) {
@@ -108,43 +108,40 @@ void DCMotor::setPin(int pin, int value) {
 }
 
 void DCMotor::setHome() {
-    motor.stopPID();
+    stopPID();
     decoder.clearCntr();
 }
 
-// TODO: implement this
+double degToCnt(double deg) {
+    return 0;
+    // TODO: make this take a degree, and return the closest degree that matches a quadrature pulse
+}
+
+// TODO: test this
 void DCMotor::gotoIndex() {
-    motor.stopPID();
-    motor.setGradSpeed(0);
+    stopPID();
+    setGradSpeed(0);
+    // index pulses are 75 degrees apart, initial increment is 75 degrees
+    double inc = 75;
     /* move this to the constructor
         wiringPiISR(indexPin, INT_EDGE_RISING, &indexISR)
      */
-    // index pulses are 75 degrees apart, so the closest index pulse is within 37.5
     // record starting position
     double position = getPosition();
     pidPosition(position);
-    // move right 3.75 degrees, 10 times (with delay of about 200ms)
-    for (int i=0; i<10; i++) {
-        setPos = (setPos + 3.75 > 360) ? setPos + 3.75 - 360 : setPos + 3.75;
-        while (setPos != position);
-        // if the index pulse was triggered, break the loop
-        if (index_tripped) break;
-        usleep(200000);
-    }
-    // if none were triggered, move back to starting position and repeat going left
-    if (!index_tripped) {
-        setPos = position;
-        for (int i=0; i<10; i++) {
-            setPos = (setPos - 3.75 < 0) ? setPos - 3.75 + 360 : setPos - 3.75;
-            while (setPos != position);
-            // if the index pulse was triggered, break the loop
-            if (index_tripped) break;
-            usleep(200000);
+    // do a binary search for the index pulse
+    while (true) {
+        // go half way there
+        while (!index_tripped) {
+            setPos = (setPos + inc/2 > 360) ? setPos + inc/2 - 360 : setPos + inc/2;
+            while (setPos != getPosition()); // TODO: fix this
+            usleep(80000);
         }
+        index_tripped = false;
+        inc /= -2.0;
+        // if (/* index is high */) break;
     }
-    // move left (or right) one quadrature pulse (0.15 degrees) at a time until the index pulse is triggered
     // record the count the index was triggered on/set setPos/set home 
-    printf("gotoIndex called. Function not yet implemented\n");
 }
 
 double DCMotor::getSpeed() {
@@ -193,11 +190,11 @@ int32_t DCMotor::getCnt() {
 
 void DCMotor::posPID() {
     printf("starting pid for position %f\n", setPos);
-    PID pid(0.02, 1, 0.04, 0);
+    PID pid(0.02, 0.8, 0, 0);
     //pid.setLimits(-30, 30);
     pid.setDampening(-0.08, 0.08);
     pid.setRollover(0, 360);
-    pid.setDeadzone(-13, 13);
+    pid.setDeadzone(-12, 12);
     double output;
     while (runningPID.load()) {
         pid.update(setPos, getPosition());
@@ -232,8 +229,8 @@ void DCMotor::stopPID() {
 }
 
 void DCMotor::pidPosition(double position) {
-    motor.stopPID();
-    motor.setGradSpeed(0);
+    stopPID();
+    setGradSpeed(0);
     setPos = position;
     runningPID.store(true);
     std::thread thr(&DCMotor::posPID, this);

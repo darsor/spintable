@@ -18,17 +18,17 @@ PID::PID(double dt, double Kp, double Ki, double Kd) :
 void PID::update(double sp, double pv) {
     if (tuning && sp != setPointOld) {
         std::string str;
-        std::cout << "Tune constants? [y/n]: ";
+        std::cout << "\nTune constants? [y/n]: ";
         char r = getchar();
         getchar();
         if (r == 'y' || r == 'Y') {
             std::cout << "Enter new constants (<Kp> <Ki> <Kd>): ";
             std::cin >> str;
-            Kp = atof(str);
+            Kp = atof(str.c_str());
             std::cin >> str;
-            Ki = atof(str);
+            Ki = atof(str.c_str());
             std::cin >> str;
-            Kd = atof(str);
+            Kd = atof(str.c_str());
         }
     }
     setPointOld = sp;
@@ -45,7 +45,7 @@ void PID::update(double sp, double pv) {
     }
     integral += error*dt;
     derivative = (error-pError)/dt;
-    //printf("proportional: %-.4f, integral: %-.4f, derivative: %-.4f, error: %-.4f     ", Kp*error, Ki*integral, Kd*derivative, error);
+    //printf("proportional: %-.4f, integral: %-.4f, derivative: %-.4f, error: %-.4f     \n", Kp*error, Ki*integral, Kd*derivative, error);
     output = Kp*error + Ki*integral + Kd*derivative;
     pError = error;
 
@@ -64,7 +64,7 @@ void PID::update(double sp, double pv) {
     }
 }
 
-void changeConstants(double p, double i, double d) {
+void PID::changeConstants(double p, double i, double d) {
     Kp = p; Ki = i; Kd = d;
 }
 

@@ -40,6 +40,7 @@ class DCMotor {
         double setSpd;
         std::atomic<bool> runningPID;
 
+        const unsigned int CNT_PER_INDEX = 500;
         const unsigned int CNT_PER_REV = 2400;
         const double DEG_PER_CNT = 360.0/CNT_PER_REV;
 
