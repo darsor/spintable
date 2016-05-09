@@ -11,9 +11,8 @@ std::mutex rw_mutex;
 // decoder constructor
 Decoder::Decoder(){
     system("gpio load spi");// loads the spi device on the RasPi
-    wiringPiSPISetup(0,1000000);//Sets up the spi device
-//  if (wiringPiSPISetup(0,1000000) < 0)
-//      perror("ERROR opening device");
+    if (wiringPiSPISetup(0,1000000) < 0)
+        perror("ERROR opening device");
     rw_mutex.lock();
     data[0]=0x88; // hexadecimal codes required for Decoder setup
     data[1]=0x01;

@@ -1,5 +1,6 @@
 #include "dcmotor.h"
 #include "pid.h"
+#include <wiringPi.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <thread>
@@ -10,6 +11,8 @@
 
 std::mutex speed_mutex;
 std::mutex pos_mutex;
+std::atomic<bool> index_tripped;
+void indexISR() { printf("index tripped\n"); index_tripped.store(true); }
 
 DCMotor::DCMotor(int channel, int addr, int freq) : pwm(addr), decoder() {
     if (channel == 0) {
@@ -32,11 +35,18 @@ DCMotor::DCMotor(int channel, int addr, int freq) : pwm(addr), decoder() {
 
 	i2cAddr = addr;
     runningPID.store(false);
-    index_tripped = false;
+    index_tripped.store(false);
+    indexPin = 5;
     pwmSpeed = 0;
     pwmSpeedOld = 0;
     pwm.setPWMFreq(freq); // default @1600Hz PWM freq
     run(RELEASE);
+    // wiringPiSetup();
+    /*
+    if (wiringPiISR(indexPin, INT_EDGE_RISING, &indexISR) < 0) {
+        perror("Unable to setup ISR");
+    } else printf("Set up ISR\n");
+    */
 }
 
 DCMotor::~DCMotor() {
@@ -112,9 +122,19 @@ void DCMotor::setHome() {
     decoder.clearCntr();
 }
 
+// make sure (0 <= deg < 360)
+double degCoerce(double deg) {
+    if (deg >= 360) deg -= 360;
+    else if (deg < 0) deg += 360;
+    return deg;
+}
+
+// take a degree and return the closest degree that matches a quadrature pulse
 double degToCnt(double deg) {
-    return 0;
-    // TODO: make this take a degree, and return the closest degree that matches a quadrature pulse
+    double diff = fmod(deg, 0.15);
+    if (diff > 0.075) deg += 0.15-diff;
+    else if (diff < 0.075) deg -= diff;
+    return degCoerce(deg);
 }
 
 // TODO: test this
@@ -123,25 +143,20 @@ void DCMotor::gotoIndex() {
     setGradSpeed(0);
     // index pulses are 75 degrees apart, initial increment is 75 degrees
     double inc = 75;
-    /* move this to the constructor
-        wiringPiISR(indexPin, INT_EDGE_RISING, &indexISR)
-     */
     // record starting position
     double position = getPosition();
     pidPosition(position);
     // do a binary search for the index pulse
     while (true) {
-        // go half way there
-        while (!index_tripped) {
-            setPos = (setPos + inc/2 > 360) ? setPos + inc/2 - 360 : setPos + inc/2;
-            while (setPos != getPosition()); // TODO: fix this
-            usleep(80000);
+        index_tripped.store(false);
+        while (!index_tripped.load()) {
+            setPos = degCoerce(setPos + inc/2);
+            while (abs(setPos - getPosition())>.075) // compare the two within a threshold (wait until we're at the position)
+                usleep(100000);
         }
-        index_tripped = false;
         inc /= -2.0;
-        // if (/* index is high */) break;
+        if (digitalRead(indexPin)) break;
     }
-    // record the count the index was triggered on/set setPos/set home 
 }
 
 double DCMotor::getSpeed() {
@@ -190,8 +205,7 @@ int32_t DCMotor::getCnt() {
 
 void DCMotor::posPID() {
     printf("starting pid for position %f\n", setPos);
-    PID pid(0.02, 0.8, 0, 0);
-    //pid.setLimits(-30, 30);
+    PID pid(0.02, 1.0, 0, 0);
     pid.setDampening(-0.08, 0.08);
     pid.setRollover(0, 360);
     pid.setDeadzone(-12, 12);
@@ -216,9 +230,9 @@ void DCMotor::speedPID() {
         pid.update(setSpd, getSpeed());
         output = pid.getOutput();
         setSpeed((int) (output + pwmSpeed));
-        printf("pwmSpeed: %d    ", pwmSpeed);
+        //printf("pwmSpeed: %d    ", pwmSpeed);
         //setSpeed((int) pid.getOutput() + pwmSpeed);
-        printf("setPoint: %-.4f, proccessValue: %-.4f, output: %-.4f    ", setSpd, getSpeed(), output);
+        //printf("setPoint: %-.4f, proccessValue: %-.4f, output: %-.4f    ", setSpd, getSpeed(), output);
         usleep(20000);
     }
 }

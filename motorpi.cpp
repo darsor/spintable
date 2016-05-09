@@ -81,6 +81,7 @@ PI_THREAD (motorControl) {
                 motor.pidPosition(position);
                 break;
             case 5:
+                printf("received command to gotoIndex\n");
                 motor.gotoIndex();
                 break;
             default:
