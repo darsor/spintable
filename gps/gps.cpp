@@ -6,6 +6,7 @@
 #include <termios.h>
 #include <iostream>
 #include <cstdlib>
+#include <cstring>
 #include <cstdio>
 #include <cerrno>
 #include <cmath>
@@ -49,19 +50,29 @@ Gps::~Gps() {
 
 float Gps::getTime() {
     float ftime;
+    char type[6];
+    type[5] = '\0';
+    bool match = false;
     // loop until all data is read
     do {
         // jump to beginning of sentence ($)
         while ( ((char) serialGetchar(fd)) != '$');
-        // jump to ','
-        while ( ((char) serialGetchar(fd)) != ',');
-        // get time
-        for (int i=0; i<10; i++) {
-            buffer[i] = (char) serialGetchar(fd);
+        // make sure it's a GPGGA sentence
+        for (int i=0; i<5; i++) {
+            type[i]=serialGetchar(fd);
+        }
+        if (strcmp(type, "GPGGA") == 0) {
+            match = true;
+            // jump to ','
+            while ( ((char) serialGetchar(fd)) != ',');
+            // get time
+            for (int i=0; i<10; i++) {
+                buffer[i] = (char) serialGetchar(fd);
+            }
         }
         // read until end of sentence (\x0a)
         while ( ((char) serialGetchar(fd)) != '\n');
-    } while (serialDataAvail(fd));
+    } while (serialDataAvail(fd) || !match);
     ftime = atof(buffer);
     //printf("GPS time: %d\n", ftime);
     return ftime;
