@@ -89,25 +89,32 @@ int main() {
 
 //  clock_t start;
     while (true) {
+
         // get timestamps and send time packet
         tPacket = new TimePacket();
         gps(tPacket);
         systemTimestamp(tPacket->sysTimeSeconds, tPacket->sysTimeuSeconds);
         queue.push(tPacket);
+
         // every second, do this 50 times
+        start = clock();
         for (int j=0; j<50; j++) {
-//          start = clock();
             sPacket = new SensorPacket();
+            // wait for the right time (to space packets apart) TODO: test this
+            while ( (clock() - start)/ (float) CLOCKS_PER_SEC < j * 0.0195) usleep(500);
             { // tell the TAM to collect data
                 std::lock_guard<std::mutex> lk(m);
                 tamStart = true;
                 systemTimestamp(sPacket->sysTimeSeconds, sPacket->sysTimeuSeconds);
             } cv.notify_one();
+
             imu(sPacket);
+
             { // wait for TAM to finish
                 std::unique_lock<std::mutex> lk(m);
                 cv.wait(lk, []{return !tamStart;});
             }
+
 //          printf("loop took %-.6f seconds\n", (float) (clock()-start)/CLOCKS_PER_SEC); 
             queue.push(sPacket);
         }
@@ -144,8 +151,7 @@ void gps(TimePacket* p) {
 
 void systemTimestamp(uint32_t &stime, uint32_t &ustime) {
     static struct timeval timeVal;
-    static struct timezone timeZone;
-    gettimeofday(&timeVal, &timeZone);
+    gettimeofday(&timeVal, NULL);
     stime =  timeVal.tv_sec;
     ustime = timeVal.tv_usec;
 }
