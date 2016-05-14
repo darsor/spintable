@@ -179,6 +179,33 @@ cosmos/cosmos.cpp.s:
 	$(MAKE) -f CMakeFiles/sensor.dir/build.make CMakeFiles/sensor.dir/cosmos/cosmos.cpp.s
 .PHONY : cosmos/cosmos.cpp.s
 
+cosmos/packets.o: cosmos/packets.cpp.o
+.PHONY : cosmos/packets.o
+
+# target to build an object file
+cosmos/packets.cpp.o:
+	$(MAKE) -f CMakeFiles/motor.dir/build.make CMakeFiles/motor.dir/cosmos/packets.cpp.o
+	$(MAKE) -f CMakeFiles/sensor.dir/build.make CMakeFiles/sensor.dir/cosmos/packets.cpp.o
+.PHONY : cosmos/packets.cpp.o
+
+cosmos/packets.i: cosmos/packets.cpp.i
+.PHONY : cosmos/packets.i
+
+# target to preprocess a source file
+cosmos/packets.cpp.i:
+	$(MAKE) -f CMakeFiles/motor.dir/build.make CMakeFiles/motor.dir/cosmos/packets.cpp.i
+	$(MAKE) -f CMakeFiles/sensor.dir/build.make CMakeFiles/sensor.dir/cosmos/packets.cpp.i
+.PHONY : cosmos/packets.cpp.i
+
+cosmos/packets.s: cosmos/packets.cpp.s
+.PHONY : cosmos/packets.s
+
+# target to generate assembly for a file
+cosmos/packets.cpp.s:
+	$(MAKE) -f CMakeFiles/motor.dir/build.make CMakeFiles/motor.dir/cosmos/packets.cpp.s
+	$(MAKE) -f CMakeFiles/sensor.dir/build.make CMakeFiles/sensor.dir/cosmos/packets.cpp.s
+.PHONY : cosmos/packets.cpp.s
+
 gps/gps.o: gps/gps.cpp.o
 .PHONY : gps/gps.o
 
@@ -438,6 +465,9 @@ help:
 	@echo "... cosmos/cosmos.o"
 	@echo "... cosmos/cosmos.i"
 	@echo "... cosmos/cosmos.s"
+	@echo "... cosmos/packets.o"
+	@echo "... cosmos/packets.i"
+	@echo "... cosmos/packets.s"
 	@echo "... gps/gps.o"
 	@echo "... gps/gps.i"
 	@echo "... gps/gps.s"

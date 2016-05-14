@@ -12,11 +12,11 @@ set (MOTOR_LIBS pthread)
 set(COMMON_SOURCES
     gps/gps.cpp
     cosmos/cosmos.cpp
+    cosmos/packets.cpp
 )
 
 set(SENSOR_SOURCES
     sensorpi.cpp
-    gps/gps.cpp
     imu/imu.cpp
     camera/camera.cpp
     tam/tam.cpp
