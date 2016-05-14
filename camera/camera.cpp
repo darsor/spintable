@@ -43,9 +43,8 @@ Camera::Camera() {
 
     initCamera();
     if(setImageFormat(resX, resY, bin, (IMG_TYPE)imageType)) {
-        printf("\ncamera formatted correctly\n");
     } else {
-        printf("camera not formatted correctly, press any key to comtinue\n");
+        printf("camera not formatted correctly, press any key to continue\n");
         getchar();
         exit(1);
     }

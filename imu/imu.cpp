@@ -135,7 +135,7 @@ Imu::Imu(){
     dev=&a;
         dev=scandev();
         if(strcmp(dev,"")!=0){
-            printf("Attempting to open port...%s: ",dev);
+            printf("Attempting to open port... ");
             comPort = OpenComPort(dev);
         }
         else{
@@ -143,7 +143,7 @@ Imu::Imu(){
             return;
         }
     if(comPort > 0)  
-    printf("connected. \n\n");
+    printf("IMU connected.\n");
 }
 
 //////////////////////////////////////////////////////////////////////

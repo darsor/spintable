@@ -87,36 +87,48 @@ int main() {
         perror("COSMOS queue thread didn't start");
     }
 
-//  clock_t start;
+    long timer = 0;
+    long difference = 0;
+    struct timespec start, next;
     while (true) {
 
         // get timestamps and send time packet
         tPacket = new TimePacket();
         gps(tPacket);
         systemTimestamp(tPacket->sysTimeSeconds, tPacket->sysTimeuSeconds);
+        clock_gettime(CLOCK_REALTIME, &start);
         queue.push(tPacket);
 
+        difference = 0;
+        timer = 0;
         // every second, do this 50 times
-        start = clock();
         for (int j=0; j<50; j++) {
+
+            do { // delay a bit (20ms per packet)
+                clock_gettime(CLOCK_REALTIME, &next);
+                if (next.tv_sec > start.tv_sec) {
+                    difference = (1000000000l-start.tv_nsec) + next.tv_nsec;
+                } else {
+                    difference = next.tv_nsec - start.tv_nsec;
+                }
+            } while (difference < timer);
+            if (difference > 982000000l) break;
+            //printf("started cycle at %li/%li\n", difference, timer);
+
             sPacket = new SensorPacket();
-            // wait for the right time (to space packets apart) TODO: test this
-            while ( (clock() - start)/ (float) CLOCKS_PER_SEC < j * 0.0195) usleep(500);
             { // tell the TAM to collect data
                 std::lock_guard<std::mutex> lk(m);
                 tamStart = true;
                 systemTimestamp(sPacket->sysTimeSeconds, sPacket->sysTimeuSeconds);
             } cv.notify_one();
-
             imu(sPacket);
-
             { // wait for TAM to finish
                 std::unique_lock<std::mutex> lk(m);
                 cv.wait(lk, []{return !tamStart;});
             }
-
-//          printf("loop took %-.6f seconds\n", (float) (clock()-start)/CLOCKS_PER_SEC); 
             queue.push(sPacket);
+
+            timer += 20000000l;
         }
     }
     return 0;
