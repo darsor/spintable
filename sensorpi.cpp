@@ -45,6 +45,7 @@ PI_THREAD (cameraControl) {
 }
 
 PI_THREAD (tamControl) {
+
     while (true) {
         std::unique_lock<std::mutex> lk(m);
         cv.wait(lk, []{return tamStart;});
@@ -80,9 +81,6 @@ int main() {
     if (piThreadCreate(cameraControl) != 0) {
         perror("Camera control thread didn't start");
     }
-    if (piThreadCreate(tamControl) != 0) {
-        perror("TAM control thread didn't start");
-    }
     if (piThreadCreate(cosmosQueue) != 0) {
         perror("COSMOS queue thread didn't start");
     }
@@ -93,6 +91,10 @@ int main() {
     cmd << "renice -n -2 -p " << pid;
     if (pid > 0)
         system(cmd.str().c_str());
+
+    if (piThreadCreate(tamControl) != 0) {
+        perror("TAM control thread didn't start");
+    }
 
     long timer = 0;
     long difference = 0;
