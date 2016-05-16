@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include <string.h>
 #include <unistd.h>
+#include <sstream>
 #include <cstdlib>
 #include <cstdio>
 #include <csignal>
@@ -100,7 +101,6 @@ int main() {
 
     // set up wiringPi
     wiringPiSetup();
-    piHiPri(99);
 
     // initialize packets
     TimePacket* tPacket = NULL;
@@ -117,6 +117,13 @@ int main() {
     if (piThreadCreate(cosmosQueue) != 0) {
         perror("COSMOS queue thread didn't start");
     }
+
+    // set high priority for this thread
+    pid_t pid = getpid();
+    std::stringstream cmd;
+    cmd << "renice -n -2 -p " << pid;
+    if (pid > 0)
+        system(cmd.str().c_str());
 
     long timer = 0, difference = 0;
     struct timeval start, next;
