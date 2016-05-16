@@ -70,10 +70,10 @@ float Gps::getTime() {
                 buffer[i] = (char) serialGetchar(fd);
             }
         }
-    } while (!match);
+        while ( ((char) serialGetchar(fd)) != '\n');
+    } while (serialDataAvail(fd) || !match);
     // get rid of the rest of the data
     //while (serialDataAvail(fd)) serialGetchar(fd);
-    //while ( ((char) serialGetchar(fd)) != '\n');
     ftime = atof(buffer);
     //printf("GPS time: %d\n", ftime);
     return ftime;

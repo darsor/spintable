@@ -1,4 +1,4 @@
-#include "cosmos/cosmos.h"
+#include "cosmos/cosmos_queue.h"
 #include "gps/gps.h"
 #include "motor/dcmotor.h"
 #include <wiringPi.h>
@@ -17,10 +17,6 @@ void gps(TimePacket* p);
 void encoder(EncoderPacket* p);
 void systemTimestamp(uint32_t &stime, uint32_t &ustime);
 
-// send packets
-int sendTimePacket(timePacket &p, Cosmos &cosmos);
-int sendEncoderPacket(encoderPacket &p, Cosmos &cosmos);
-
 // initialize COSMOS and devices
 // these are global so that all threads can access them
 CosmosQueue<Packet*> queue(128);
@@ -34,15 +30,22 @@ PI_THREAD (motorControl) {
     static float pos;
     static double position;
     while (true) {
+        while (!queue.isConnected()) usleep(100000); // if it's disconnected, loop and wait until it reconnects
         // receive the first two bytes (the length of the packet);
-        if (cosmos.recvPacket(buffer, 2) != 0) {
+        if (queue.recv(buffer, 2) != 0) {
             // if connection was lost, sending packets will fail and then try to reconnect
             motor.stopPID();
             motor.setSpeed(0);
+            usleep(1000000);
+            continue;
         } else {
             length = ntohs(*((uint16_t*)buffer));
             // receive the rest of the packet
-            cosmos.recvPacket(buffer, length);
+            if (queue.recv(buffer, length) != 0) {
+                motor.stopPID();
+                motor.setSpeed(0);
+                continue;
+            }
             // get the id to know what command it is
             id = ntohs(*((uint16_t*)buffer));
             switch (id) {
@@ -79,7 +82,6 @@ PI_THREAD (motorControl) {
             }
         }
         id = 0;
-        while (!queue.isConnected()) usleep(50000); // if it's disconnected, loop and wait until it reconnects
     }
 }
 
@@ -116,22 +118,40 @@ int main() {
         perror("COSMOS queue thread didn't start");
     }
 
+    long timer = 0, difference = 0;
+    struct timeval start, next;
     while (true) {
 
         // get timestamps and send time packet
         tPacket = new TimePacket();
         gps(tPacket);
         systemTimestamp(tPacket->sysTimeSeconds, tPacket->sysTimeuSeconds);
+        gettimeofday(&start, NULL);
         queue.push(tPacket);
 
-        // TODO: test this entire program =D
+        difference = 0;
+        timer = 0;
         // every second, do this 50 times
         for (int j=0; j<50; j++) {
+
+            do { // delay a bit (20ms per packet)
+                gettimeofday(&next, NULL);
+                if (next.tv_sec > start.tv_sec) {
+                    difference = (1000000-start.tv_usec) + next.tv_usec;
+                } else {
+                    difference = next.tv_usec - start.tv_usec;
+                }
+                if (difference < timer) usleep(100);
+            } while (difference < timer);
+            if (difference > 982000) break;
+            //printf("started cycle at %li/%li\n", difference, timer);
+
             ePacket = new EncoderPacket();
-            systemTimestamp(ePacket.sysTimeSeconds, ePacket.sysTimeuSeconds);
+            systemTimestamp(ePacket->sysTimeSeconds, ePacket->sysTimeuSeconds);
             encoder(ePacket);
-            queue.push(tPacket);
-            usleep(17500); // TODO: fine tune the delay
+            queue.push(ePacket);
+
+            timer += 20000;
         }
     }
     return 0;

@@ -18,6 +18,7 @@ class CosmosQueue {
         void connect();
         void disconnect();
         bool isConnected() { return connected; }
+        int recv(char* buffer, int size);
     private:
         Cosmos cosmos;
         bool connected;
@@ -68,7 +69,6 @@ unsigned int CosmosQueue<T>::wrap(unsigned int& value) {
     return value;
 }
 
-// TODO: test this
 template <typename T>
 void CosmosQueue<T>::push(const T& item) {
     push_mutex.lock();
@@ -84,7 +84,6 @@ void CosmosQueue<T>::push(const T& item) {
     push_mutex.unlock();
 }
 
-// TODO: test this
 template <typename T>
 bool CosmosQueue<T>::pop() {
     static char* buffer = NULL;
@@ -141,6 +140,14 @@ void CosmosQueue<T>::connect() {
 template <typename T>
 void CosmosQueue<T>::disconnect() {
     cosmos.cosmosDisconnect();
+}
+
+template <typename T>
+int CosmosQueue<T>::recv(char* buffer, int size) {
+    if (cosmos.recvPacket(buffer, size) < 0) {
+        connected = false;
+        return -1;
+    } else return 0;
 }
 
 #endif

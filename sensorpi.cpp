@@ -89,14 +89,14 @@ int main() {
 
     long timer = 0;
     long difference = 0;
-    struct timespec start, next;
+    struct timeval start, next;
     while (true) {
 
         // get timestamps and send time packet
         tPacket = new TimePacket();
         gps(tPacket);
         systemTimestamp(tPacket->sysTimeSeconds, tPacket->sysTimeuSeconds);
-        clock_gettime(CLOCK_REALTIME, &start);
+        gettimeofday(&start, NULL);
         queue.push(tPacket);
 
         difference = 0;
@@ -105,14 +105,15 @@ int main() {
         for (int j=0; j<50; j++) {
 
             do { // delay a bit (20ms per packet)
-                clock_gettime(CLOCK_REALTIME, &next);
+                gettimeofday(&next, NULL);
                 if (next.tv_sec > start.tv_sec) {
-                    difference = (1000000000l-start.tv_nsec) + next.tv_nsec;
+                    difference = (1000000-start.tv_usec) + next.tv_usec;
                 } else {
-                    difference = next.tv_nsec - start.tv_nsec;
+                    difference = next.tv_usec - start.tv_usec;
                 }
             } while (difference < timer);
-            if (difference > 982000000l) break;
+            if (difference < timer) usleep(100);
+            if (difference > 982000) break;
             //printf("started cycle at %li/%li\n", difference, timer);
 
             sPacket = new SensorPacket();
@@ -128,7 +129,7 @@ int main() {
             }
             queue.push(sPacket);
 
-            timer += 20000000l;
+            timer += 20000;
         }
     }
     return 0;
