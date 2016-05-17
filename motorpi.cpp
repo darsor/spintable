@@ -12,11 +12,21 @@
 #include <csignal>
 #include <cerrno>
 #include <cmath>
+#include <mutex>
+#include <condition_variable>
 
 // gather data from various sensors
-void gps(TimePacket* p);
 void encoder(EncoderPacket* p);
 void systemTimestamp(uint32_t &stime, uint32_t &ustime);
+
+// set up condition variable to wake up the GPS thread
+std::mutex gps_m;
+std::condition_variable gps_cv;
+bool gpsStart = false;
+
+// initialize GPS and its packet
+Gps gps(2, "/dev/ttyAMA0", 9600);
+TimePacket* tPacket = NULL;
 
 // initialize COSMOS and devices
 // these are global so that all threads can access them
@@ -50,21 +60,21 @@ PI_THREAD (motorControl) {
             // get the id to know what command it is
             id = ntohs(*((uint16_t*)buffer));
             switch (id) {
-                case 1:
+                case 1: // set home command
                     motor.setHome();
                     break;
-                case 2:
+                case 2: // change speed command
                     speed = ntohs(*((int16_t*)(buffer+2)));
                     printf("received command to change speed to %d\n", speed);
                     motor.setGradSpeed(speed);
                     break;
-                case 3:
+                case 3: // go to absolute position command
                     pos = *( (float*) (buffer+2));
                     endianSwap(pos);
                     printf("received command to change absolute position to %f\n", pos);
                     motor.pidPosition(pos);
                     break;
-                case 4:
+                case 4: // go to relative position command
                     pos = *( (float*) (buffer+2));
                     endianSwap(pos);
                     printf("received command to change relative position by %f\n", pos);
@@ -74,15 +84,29 @@ PI_THREAD (motorControl) {
                     if (position > 360) position -= 360;
                     motor.pidPosition(position);
                     break;
-                case 5:
+                case 5: // go to index command (not implemented!)
                     printf("received command to gotoIndex\n");
                     motor.gotoIndex();
                     break;
                 default:
                     printf("unknown command received\n");
+                    usleep(500000);
             }
         }
         id = 0;
+    }
+}
+
+PI_THREAD (gpsControl) {
+    TimePacket* tempPacket;
+    while (true) {
+        std::unique_lock<std::mutex> lk(gps_m);
+        gps_cv.wait(lk, []{return gpsStart;});
+        tempPacket = tPacket;
+        tempPacket->gpsTime = gps.getTime();
+        gpsStart = false;
+        lk.unlock();
+        queue.push(tempPacket);
     }
 }
 
@@ -102,20 +126,19 @@ int main() {
     // set up wiringPi
     wiringPiSetup();
 
-    // initialize packets
-    TimePacket* tPacket = NULL;
+    // initialize encoder and its packet
     EncoderPacket* ePacket = NULL;
-
-    // initialize devices
-    gps(tPacket);
     encoder(ePacket);
 
     // start threads
+    if (piThreadCreate(cosmosQueue) != 0) {
+        perror("COSMOS queue thread didn't start");
+    }
     if (piThreadCreate(motorControl) != 0) {
         perror("Motor control thread didn't start");
     }
-    if (piThreadCreate(cosmosQueue) != 0) {
-        perror("COSMOS queue thread didn't start");
+    if (piThreadCreate(gpsControl) != 0) {
+        perror("GPS control thread didn't start");
     }
 
     // set high priority for this thread
@@ -125,17 +148,22 @@ int main() {
     if (pid > 0)
         system(cmd.str().c_str());
 
+    // these values help time the packets
     long timer = 0, difference = 0;
     struct timeval start, next;
     while (true) {
 
         // get timestamps and send time packet
         tPacket = new TimePacket();
-        gps(tPacket);
-        systemTimestamp(tPacket->sysTimeSeconds, tPacket->sysTimeuSeconds);
-        gettimeofday(&start, NULL);
-        queue.push(tPacket);
+        gps.timestampPPS(tPacket->sysTimeSeconds, tPacket->sysTimeuSeconds);
+        { // wait in another thread for the GPS to return its timestamp
+            std::lock_guard<std::mutex> lk(gps_m);
+            gpsStart = true;
+        } gps_cv.notify_one();
 
+        // set time values for timing
+        start.tv_sec = tPacket->sysTimeSeconds;
+        start.tv_usec = tPacket->sysTimeuSeconds;
         difference = 0;
         timer = 0;
         // every second, do this 50 times
@@ -164,19 +192,6 @@ int main() {
     return 0;
 }
 
-void gps(TimePacket* p) {
-    static Gps gps("/dev/ttyAMA0", 9600);
-    if (p == NULL) return;
-    p->gpsTime = gps.getTime();
-}
-
-void systemTimestamp(uint32_t &stime, uint32_t &ustime) {
-    static struct timeval timeVal;
-    gettimeofday(&timeVal, NULL);
-    stime =  timeVal.tv_sec;
-    ustime = timeVal.tv_usec;
-}
-
 void encoder(EncoderPacket* p) {
     static const unsigned int CNT_PER_REV = 2400;
     if (p == NULL) return;
@@ -184,4 +199,11 @@ void encoder(EncoderPacket* p) {
     p->position = motor.getPosition();
     p->raw_cnt = motor.getCnt();
     p->rev_cnt = p->raw_cnt / CNT_PER_REV;
+}
+
+void systemTimestamp(uint32_t &stime, uint32_t &ustime) {
+    static struct timeval timeVal;
+    gettimeofday(&timeVal, NULL);
+    stime =  timeVal.tv_sec;
+    ustime = timeVal.tv_usec;
 }

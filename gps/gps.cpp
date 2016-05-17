@@ -22,10 +22,7 @@ std::condition_variable cond_var;
 timeval time_val;
 volatile bool pps;
 
-Gps::Gps(): Gps("/dev/ttyAMA0", 9600) {
-}
-
-Gps::Gps(std::string device, int baud) {
+Gps::Gps(int ppsPin, std::string device, int baud): ppsPin(ppsPin) {
     if ((fd = serialOpen(device.c_str(), baud)) < 0) {
         perror("ERROR opening GPS");
         exit(1);
@@ -47,7 +44,7 @@ Gps::Gps(std::string device, int baud) {
     cmd << "renice -n -2 -p " << pid;
     if (pid > 0)
         system(cmd.str().c_str());
-    wiringPiISR(1, INT_EDGE_RISING, &ppsISR);
+    wiringPiISR(ppsPin, INT_EDGE_RISING, &ppsISR);
     // set low priority for this thread
     std::stringstream cmd2;
     cmd2 << "renice -n 0 -p " << pid;

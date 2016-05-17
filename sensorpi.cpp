@@ -102,7 +102,7 @@ int main() {
         perror("Camera control thread didn't start");
     }
     if (piThreadCreate(gpsControl) != 0) {
-        perror("Camera control thread didn't start");
+        perror("GPS control thread didn't start");
     }
 
     // set high priority for this thread
@@ -118,8 +118,7 @@ int main() {
     }
 
     // these values help time the packets
-    long timer = 0;
-    long difference = 0;
+    long timer = 0, difference = 0;
     struct timeval start, next;
     while (true) {
 
