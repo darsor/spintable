@@ -18,13 +18,18 @@
 void imu(SensorPacket* p);
 void tam(SensorPacket* p);
 void camera(CameraPacket* p);
-void gps(TimePacket* p);
 void systemTimestamp(uint32_t &stime, uint32_t &ustime);
 
-// set up condition variables to wake the TAM thread
-std::mutex m;
-std::condition_variable cv;
+// set up condition variables to wake the TAM and GPS threads
+std::mutex tam_m;
+std::condition_variable tam_cv;
 bool tamStart = false;
+std::mutex gps_m;
+std::condition_variable gps_cv;
+bool gpsStart = false;
+
+// initialize GPS
+Gps gps;
 
 // initialize packets
 TimePacket* tPacket = NULL;
@@ -41,18 +46,31 @@ PI_THREAD (cameraControl) {
         systemTimestamp(cPacket->sysTimeSeconds, cPacket->sysTimeuSeconds);
         camera(cPacket);
         queue.push(cPacket);
+        usleep(80000);
     }
 }
 
 PI_THREAD (tamControl) {
-
     while (true) {
-        std::unique_lock<std::mutex> lk(m);
-        cv.wait(lk, []{return tamStart;});
+        std::unique_lock<std::mutex> lk(tam_m);
+        tam_cv.wait(lk, []{return tamStart;});
         tam(sPacket);
         tamStart = false;
         lk.unlock();
-        cv.notify_one();
+        tam_cv.notify_one();
+    }
+}
+
+PI_THREAD (gpsControl) {
+    TimePacket* tempPacket;
+    while (true) {
+        std::unique_lock<std::mutex> lk(gps_m);
+        gps_cv.wait(lk, []{return gpsStart;});
+        tempPacket = tPacket;
+        tempPacket->gpsTime = gps.getTime();
+        gpsStart = false;
+        lk.unlock();
+        queue.push(tempPacket);
     }
 }
 
@@ -75,14 +93,16 @@ int main() {
     // initialize devices
     imu(sPacket);
     tam(sPacket);
-    gps(tPacket);
 
     // start threads
+    if (piThreadCreate(cosmosQueue) != 0) {
+        perror("COSMOS queue thread didn't start");
+    }
     if (piThreadCreate(cameraControl) != 0) {
         perror("Camera control thread didn't start");
     }
-    if (piThreadCreate(cosmosQueue) != 0) {
-        perror("COSMOS queue thread didn't start");
+    if (piThreadCreate(gpsControl) != 0) {
+        perror("Camera control thread didn't start");
     }
 
     // set high priority for this thread
@@ -92,10 +112,12 @@ int main() {
     if (pid > 0)
         system(cmd.str().c_str());
 
+    // initialize the TAM with the higher priority
     if (piThreadCreate(tamControl) != 0) {
         perror("TAM control thread didn't start");
     }
 
+    // these values help time the packets
     long timer = 0;
     long difference = 0;
     struct timeval start, next;
@@ -103,11 +125,15 @@ int main() {
 
         // get timestamps and send time packet
         tPacket = new TimePacket();
-        gps(tPacket);
-        systemTimestamp(tPacket->sysTimeSeconds, tPacket->sysTimeuSeconds);
-        gettimeofday(&start, NULL);
-        queue.push(tPacket);
+        gps.timestampPPS(tPacket->sysTimeSeconds, tPacket->sysTimeuSeconds);
+        { // wait in another thread for the GPS to return its timestamp
+            std::lock_guard<std::mutex> lk(gps_m);
+            gpsStart = true;
+        } gps_cv.notify_one();
 
+        // set time values for timing
+        start.tv_sec = tPacket->sysTimeSeconds;
+        start.tv_usec = tPacket->sysTimeuSeconds;
         difference = 0;
         timer = 0;
         // every second, do this 50 times
@@ -127,14 +153,14 @@ int main() {
 
             sPacket = new SensorPacket();
             { // tell the TAM to collect data
-                std::lock_guard<std::mutex> lk(m);
+                std::lock_guard<std::mutex> lk(tam_m);
                 tamStart = true;
                 systemTimestamp(sPacket->sysTimeSeconds, sPacket->sysTimeuSeconds);
-            } cv.notify_one();
-            imu(sPacket);
+            } tam_cv.notify_one();
+            imu(sPacket); // get IMU data
             { // wait for TAM to finish
-                std::unique_lock<std::mutex> lk(m);
-                cv.wait(lk, []{return !tamStart;});
+                std::unique_lock<std::mutex> lk(tam_m);
+                tam_cv.wait(lk, []{return !tamStart;});
             }
             queue.push(sPacket);
 
@@ -163,12 +189,6 @@ void camera(CameraPacket* p) {
     static Camera cam;
     if (p == NULL) return;
     cam.getFrame(p->pBuffer);
-}
-
-void gps(TimePacket* p) {
-    static Gps gps("/dev/ttyAMA0", 9600);
-    if (p == NULL) return;
-    p->gpsTime = gps.getTime();
 }
 
 void systemTimestamp(uint32_t &stime, uint32_t &ustime) {

@@ -28,7 +28,7 @@ Camera::Camera() {
         printf("no camera connected, press any key to exit\n");
         getchar();
         exit(1);
-    } else printf("attached cameras:\n");
+    }
 
     if (!openCamera(camNum)) {
         printf("ERROR opening camera, are you root? Press any key to exit\n");
