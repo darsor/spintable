@@ -13,6 +13,7 @@ set(COMMON_SOURCES
     gps/gps.cpp
     cosmos/cosmos.cpp
     cosmos/packets.cpp
+    cosmos/cosmosQueue.cpp
 )
 
 set(SENSOR_SOURCES

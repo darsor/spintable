@@ -1,10 +1,10 @@
-#include "cosmos/cosmos_queue.h"
+#include "cosmos/cosmosQueue.h"
 #include "gps/gps.h"
 #include "camera/camera.h"
 #include "tam/tam.h"
 #include "imu/imu.h"
 #include <wiringPi.h>
-#include <sys/types.h> 
+#include <sys/types.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <cstdlib>
@@ -36,7 +36,7 @@ TimePacket* tPacket = NULL;
 SensorPacket* sPacket = NULL;
 
 // make the CosmosQueue global (so that all threads can access it)
-CosmosQueue<Packet*> queue(128);
+CosmosQueue queue(128);
 
 PI_THREAD (cameraControl) {
     static CameraPacket* cPacket = NULL;

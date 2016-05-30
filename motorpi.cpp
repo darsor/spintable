@@ -1,4 +1,4 @@
-#include "cosmos/cosmos_queue.h"
+#include "cosmos/cosmosQueue.h"
 #include "gps/gps.h"
 #include "motor/dcmotor.h"
 #include <wiringPi.h>
@@ -30,7 +30,7 @@ TimePacket* tPacket = NULL;
 
 // initialize COSMOS and devices
 // these are global so that all threads can access them
-CosmosQueue<Packet*> queue(128);
+CosmosQueue queue(128);
 DCMotor motor(2, 0x60, 1600);
 
 PI_THREAD (motorControl) {

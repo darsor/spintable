@@ -179,6 +179,33 @@ cosmos/cosmos.cpp.s:
 	$(MAKE) -f CMakeFiles/sensor.dir/build.make CMakeFiles/sensor.dir/cosmos/cosmos.cpp.s
 .PHONY : cosmos/cosmos.cpp.s
 
+cosmos/cosmosQueue.o: cosmos/cosmosQueue.cpp.o
+.PHONY : cosmos/cosmosQueue.o
+
+# target to build an object file
+cosmos/cosmosQueue.cpp.o:
+	$(MAKE) -f CMakeFiles/motor.dir/build.make CMakeFiles/motor.dir/cosmos/cosmosQueue.cpp.o
+	$(MAKE) -f CMakeFiles/sensor.dir/build.make CMakeFiles/sensor.dir/cosmos/cosmosQueue.cpp.o
+.PHONY : cosmos/cosmosQueue.cpp.o
+
+cosmos/cosmosQueue.i: cosmos/cosmosQueue.cpp.i
+.PHONY : cosmos/cosmosQueue.i
+
+# target to preprocess a source file
+cosmos/cosmosQueue.cpp.i:
+	$(MAKE) -f CMakeFiles/motor.dir/build.make CMakeFiles/motor.dir/cosmos/cosmosQueue.cpp.i
+	$(MAKE) -f CMakeFiles/sensor.dir/build.make CMakeFiles/sensor.dir/cosmos/cosmosQueue.cpp.i
+.PHONY : cosmos/cosmosQueue.cpp.i
+
+cosmos/cosmosQueue.s: cosmos/cosmosQueue.cpp.s
+.PHONY : cosmos/cosmosQueue.s
+
+# target to generate assembly for a file
+cosmos/cosmosQueue.cpp.s:
+	$(MAKE) -f CMakeFiles/motor.dir/build.make CMakeFiles/motor.dir/cosmos/cosmosQueue.cpp.s
+	$(MAKE) -f CMakeFiles/sensor.dir/build.make CMakeFiles/sensor.dir/cosmos/cosmosQueue.cpp.s
+.PHONY : cosmos/cosmosQueue.cpp.s
+
 cosmos/packets.o: cosmos/packets.cpp.o
 .PHONY : cosmos/packets.o
 
@@ -465,6 +492,9 @@ help:
 	@echo "... cosmos/cosmos.o"
 	@echo "... cosmos/cosmos.i"
 	@echo "... cosmos/cosmos.s"
+	@echo "... cosmos/cosmosQueue.o"
+	@echo "... cosmos/cosmosQueue.i"
+	@echo "... cosmos/cosmosQueue.s"
 	@echo "... cosmos/packets.o"
 	@echo "... cosmos/packets.i"
 	@echo "... cosmos/packets.s"
