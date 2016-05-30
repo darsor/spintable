@@ -4,7 +4,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <thread>
-#include <cstdlib>
+//#include <cstdlib>
 #include <cstdio>
 #include <cmath>
 #include <mutex>
@@ -12,7 +12,7 @@
 std::mutex speed_mutex;
 std::mutex pos_mutex;
 std::atomic<bool> index_tripped;
-void indexISR() { printf("index tripped\n"); index_tripped.store(true); }
+void indexISR() { index_tripped.store(true); }
 
 DCMotor::DCMotor(int channel, int addr, int freq) : pwm(addr), decoder() {
     if (channel == 0) {
@@ -36,17 +36,15 @@ DCMotor::DCMotor(int channel, int addr, int freq) : pwm(addr), decoder() {
 	i2cAddr = addr;
     runningPID.store(false);
     index_tripped.store(false);
-    indexPin = 5;
+    indexPin = 6;
     pwmSpeed = 0;
     pwmSpeedOld = 0;
     pwm.setPWMFreq(freq); // default @1600Hz PWM freq
     run(RELEASE);
-    // wiringPiSetup();
-    /*
+    wiringPiSetup();
     if (wiringPiISR(indexPin, INT_EDGE_RISING, &indexISR) < 0) {
         perror("Unable to setup ISR");
     } else printf("Set up ISR\n");
-    */
 }
 
 DCMotor::~DCMotor() {
@@ -137,26 +135,38 @@ double degToCnt(double deg) {
     return degCoerce(deg);
 }
 
-// TODO: test this
 void DCMotor::gotoIndex() {
     stopPID();
     setGradSpeed(0);
     // index pulses are 75 degrees apart, initial increment is 75 degrees
     double inc = 75;
+    int i=0;
     // record starting position
     double position = getPosition();
     pidPosition(position);
     // do a binary search for the index pulse
     while (true) {
         index_tripped.store(false);
+        i = 0;
         while (!index_tripped.load()) {
+            if (i >= 3) {
+                inc *= -1;
+                i = 0;
+            }
+            //printf("sweeping from %f to %f\n", setPos, degCoerce(setPos + inc/2));
             setPos = degCoerce(setPos + inc/2);
             while (abs(setPos - getPosition())>.075) // compare the two within a threshold (wait until we're at the position)
                 usleep(100000);
+            usleep(500000);
+            //printf("stopped at %f\n", setPos);
+            i++;
         }
-        inc /= -2.0;
         if (digitalRead(indexPin)) break;
+        //printf("increment changing from %f to %f\n", inc, inc/-2.0);
+        inc /= -2.0;
+        if (fabs(inc) < 0.02) break;
     }
+    printf("gotoIndex stopping at %f\n", setPos);
 }
 
 double DCMotor::getSpeed() {
@@ -193,10 +203,12 @@ double DCMotor::getSpeed() {
 double DCMotor::getPosition() {
     pos_mutex.lock();
     int count = decoder.readCntr();
+    double tempPos = 0;
     degPosition = (count % (int) CNT_PER_REV) * DEG_PER_CNT;
     if (count < 0) degPosition += 360;
+    tempPos = degPosition;
     pos_mutex.unlock();
-    return degPosition;
+    return tempPos;
 }
 
 int32_t DCMotor::getCnt() {
@@ -205,10 +217,10 @@ int32_t DCMotor::getCnt() {
 
 void DCMotor::posPID() {
     printf("starting pid for position %f\n", setPos);
-    PID pid(0.02, 1.0, 0, 0);
-    pid.setDampening(-0.08, 0.08);
+    PID pid(0.01, 0.6, 0, 0);
+    pid.setDampening(-0.075, 0.075);
     pid.setRollover(0, 360);
-    pid.setDeadzone(-12, 12);
+    pid.setDeadzone(-15, 15);
     double output;
     while (runningPID.load()) {
         pid.update(setPos, getPosition());
@@ -216,7 +228,7 @@ void DCMotor::posPID() {
         setSpeed((int) output);
         //setSpeed((int) pid.getOutput());
         //printf("    setPoint: %-.4f, proccessValue: %-.4f, output: %-.4f\n", setPos, getPosition(), output);
-        usleep(20000);
+        usleep(10000);
     }
 }
 

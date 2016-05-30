@@ -78,7 +78,8 @@ PI_THREAD (motorControl) {
                     pos = *( (float*) (buffer+2));
                     endianSwap(pos);
                     printf("received command to change relative position by %f\n", pos);
-                    position = motor.getPosition();
+                    if (motor.pidIsOn()) position = motor.getPidPos();
+                    else position = motor.getPosition();
                     position += pos;
                     if (position < 360) position += 360;
                     if (position > 360) position -= 360;

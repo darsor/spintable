@@ -56,9 +56,9 @@ void PID::update(double sp, double pv) {
     if (deadzone && error != 0) {
         if (output < deadHigh && output > deadLow) {
             if (error > 0) {
-                output = deadHigh;
+                output = deadHigh + Ki*integral;
             } else if (error < 0) {
-                output = deadLow;
+                output = deadLow - Ki*integral;
             }
         }
     }

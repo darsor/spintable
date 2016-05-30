@@ -32,6 +32,9 @@ class DCMotor {
         void stopPID();
         void pidPosition(double setPosition);
         void pidSpeed(double speed);
+        bool pidIsOn() { return runningPID.load(); }
+        double getPidPos() { return setPos; }
+
 
     private:
         void posPID();
