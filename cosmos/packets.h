@@ -6,8 +6,25 @@
 
 #define TIME_PKT_SIZE       18
 #define SENSOR_PKT_SIZE     86
-#define CAM_PKT_SIZE        102414
+#define CAM_PKT_SIZE        76814
 #define ENC_PKT_SIZE        30
+#define CAM_CMD_SIZE        8
+#define MOTOR_SET_HOME_SIZE     6
+#define MOTOR_SET_SPEED_SIZE    8
+#define MOTOR_ABS_POS_SIZE      10
+#define MOTOR_REV_POS_SIZE      10
+#define MOTOR_GOTO_INDEX_SIZE   6
+
+#define TIME_PKT_ID             1
+#define SENSOR_PKT_ID           2
+#define CAM_PKT_ID              3
+#define ENC_PKT_ID              4
+#define CAM_CMD_ID              5
+#define MOTOR_SET_HOME_ID       9
+#define MOTOR_SET_SPEED_ID      10
+#define MOTOR_ABS_POS_ID        11
+#define MOTOR_REV_POS_ID        12
+#define MOTOR_GOTO_INDEX_ID     13
 
 #include <cstdint>
 
@@ -24,16 +41,19 @@ inline void endianSwap(float &f) {
 class Packet {
     public:
         Packet(const uint32_t length, const uint16_t id);
+        Packet(const Packet& that);
+        Packet& operator=(const Packet& that);
         virtual ~Packet();
-        virtual void convert(char* buffer);
+        virtual void convert();
         uint32_t length;
         uint16_t id;
+        unsigned char* buffer;
 };
 
 class TimePacket: public Packet {
     public:
         TimePacket();
-        void convert(char* buffer);
+        void convert();
         float gpsTime;
         uint32_t sysTimeSeconds;
         uint32_t sysTimeuSeconds;
@@ -42,7 +62,7 @@ class TimePacket: public Packet {
 class SensorPacket: public Packet {
     public:
         SensorPacket();
-        void convert(char* buffer);
+        void convert();
         uint16_t tamA;
         uint16_t tamB;
         uint16_t tamC;
@@ -80,8 +100,8 @@ class SensorPacket: public Packet {
 class CameraPacket: public Packet {
     public:
         CameraPacket();
-        void convert(char* buffer);
-        unsigned char pBuffer[102400];
+        void convert();
+        unsigned char pBuffer[76800];
         uint32_t sysTimeSeconds;
         uint32_t sysTimeuSeconds;
 };
@@ -89,13 +109,41 @@ class CameraPacket: public Packet {
 class EncoderPacket: public Packet {
     public:
         EncoderPacket();
-        void convert(char* buffer);
+        void convert();
         uint32_t sysTimeSeconds;
         uint32_t sysTimeuSeconds;
         int32_t raw_cnt;
         float motorSpeed;
         float position;
-        uint32_t rev_cnt;
+        int32_t rev_cnt;
+};
+
+class CameraPowerCmd: public Packet {
+    public:
+        CameraPowerCmd();
+        void convert();
+        uint16_t state;
+};
+
+class SetSpeedCmd: public Packet {
+    public:
+        SetSpeedCmd();
+        void convert();
+        int16_t speed;
+};
+
+class SetAbsPosCmd: public Packet {
+    public:
+        SetAbsPosCmd();
+        void convert();
+        float position;
+};
+
+class SetRevPosCmd: public Packet {
+    public:
+        SetRevPosCmd();
+        void convert();
+        float position;
 };
 
 #endif

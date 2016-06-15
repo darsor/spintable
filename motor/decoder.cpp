@@ -10,7 +10,6 @@ std::mutex rw_mutex;
 
 // decoder constructor
 Decoder::Decoder(){
-    system("gpio load spi");// loads the spi device on the RasPi
     if (wiringPiSPISetup(0,1000000) < 0)
         perror("ERROR opening device");
     rw_mutex.lock();

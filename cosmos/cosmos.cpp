@@ -8,6 +8,7 @@
 #include <string.h>
 
 std::mutex write_mutex;
+std::mutex read_mutex;
 
 Cosmos::Cosmos(int portno) {
     port = portno;
@@ -65,21 +66,24 @@ void Cosmos::acceptConnection() {
     printf("accepted connection from %s:%d\n", inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
 }
 
-int Cosmos::sendPacket(char* buffer, int size) {
+int Cosmos::sendPacket(unsigned char* buffer, int size) {
+    int bytes;
     write_mutex.lock();
-    if (send(connectionSocket, buffer, size, 0) < 0) {
-        write_mutex.unlock();
+    bytes = send(connectionSocket, buffer, size, 0);
+    write_mutex.unlock();
+    if (bytes < 0) {
         perror("ERROR on send");
         return -1;
-    }
-    write_mutex.unlock();
-    return 0;
+    } else return bytes;
 }
 
-int Cosmos::recvPacket(char* buffer, int size) {
-    if (recv(connectionSocket, buffer, size, 0) < 0) {
+int Cosmos::recvPacket(unsigned char* buffer, int size) {
+    int bytes;
+    read_mutex.lock();
+    bytes = recv(connectionSocket, buffer, size, 0);
+    read_mutex.unlock();
+    if (bytes < 0) {
         perror("ERROR on receive");
         return -1;
-    }
-    return 0;
+    } else return bytes;
 }

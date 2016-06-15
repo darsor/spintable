@@ -3,29 +3,36 @@
 
 #include "cosmos.h"
 #include "packets.h"
+#include <atomic>
 #include <queue>
 
 class CosmosQueue {
     public:
-        CosmosQueue(const unsigned int size);
+        CosmosQueue(unsigned int port, unsigned int sendSize, unsigned int recvSize = 0);
         ~CosmosQueue();
-        void push(Packet* item);
-        bool pop();
-        void deleteFront();
-        unsigned int size();
+        void push_tlm(Packet* tlm);
+        bool  pop_cmd(Packet* &cmd);
+        void deleteFrontTlm();
+        void deleteFrontCmd();
+        unsigned int tlmSize();
+        unsigned int cmdSize();
+
         void connect();
         void disconnect();
         bool isConnected() { return connected; }
-        int recv(char* buffer, int size);
     private:
         Cosmos cosmos;
-        bool connected;
+        std::atomic<bool> connected;
 
-        std::queue<Packet*> queue;
-        unsigned int capacity;
-        char timeBuffer[TIME_PKT_SIZE];
-        char sensorBuffer[SENSOR_PKT_SIZE];
-        char cameraBuffer[CAM_PKT_SIZE];
-        char encoderBuffer[ENC_PKT_SIZE];
+        std::queue<Packet*> tlmQueue;
+        std::queue<Packet*> cmdQueue;
+        unsigned int tlmCapacity;
+        unsigned int cmdCapacity;
+
+        bool pop_tlm();
+        void push_cmd(Packet* cmd);
+
+        void tlm_thread();
+        void cmd_thread();
 };
 #endif

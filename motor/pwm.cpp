@@ -5,7 +5,6 @@
 #include <cmath>
 
 PWM::PWM(int address=0x40) {
-    std::system("gpio load i2c");
     pwm = wiringPiI2CSetup (address);
     wiringPiI2CWriteReg8(pwm, MODE2, OUTDRV);
     wiringPiI2CWriteReg8(pwm, MODE1, ALLCALL);

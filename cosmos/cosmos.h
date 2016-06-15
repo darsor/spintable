@@ -14,8 +14,8 @@ class Cosmos {
         void cosmosConnect();
         void cosmosDisconnect();
         void acceptConnection();
-        int sendPacket(char* buffer, int size);
-        int recvPacket(char* buffer, int size);
+        int sendPacket(unsigned char* buffer, int size);
+        int recvPacket(unsigned char* buffer, int size);
 
     private:
         int connectionSocket;
