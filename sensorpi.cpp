@@ -33,7 +33,7 @@ TimePacket* tPacket = nullptr;
 SensorPacket* sPacket = nullptr;
 
 // make the CosmosQueue global (so that all threads can access it)
-CosmosQueue queue(4810, 256);
+CosmosQueue queue(4810, 256, 8);
 
 std::atomic<bool> camera_state;
 std::condition_variable camera_cv;
