@@ -11,6 +11,9 @@
 #include <cstdio>
 #include <mutex>
 #include <condition_variable>
+#ifdef USE_FVM400
+#include "fvm400/fvm400.h"
+#endif
 
 using namespace raspicam;
 
@@ -24,16 +27,13 @@ void systemTimestamp(uint32_t &stime, uint32_t &ustime);
 std::mutex tam_m;
 std::condition_variable tam_cv;
 bool tamStart = false;
-std::mutex gps_m;
-std::condition_variable gps_cv;
-bool gpsStart = false;
 
 // initialize packets
 TimePacket* tPacket = nullptr;
 SensorPacket* sPacket = nullptr;
 
 // make the CosmosQueue global (so that all threads can access it)
-CosmosQueue queue(4810, 256, 8);
+CosmosQueue queue(4810, 512, 8);
 
 std::atomic<bool> camera_state;
 std::condition_variable camera_cv;
@@ -107,6 +107,27 @@ PI_THREAD (tamControl) {
     }
 }
 
+#ifdef USE_FVM400
+std::mutex fvm400_m;
+std::condition_variable fvm400_cv;
+bool fvm400Start = false;
+PI_THREAD (fvm400Control) {
+    FVM400 mag("TODO");
+    FVM400_data data;
+    while (true) {
+        std::unique_lock<std::mutex> lk(fvm400_m);
+        fvm400_cv.wait(lk, []{return fvm400Start;});
+        data = mag.getData();
+        sPacket->fvm400x = data.comp1;
+        sPacket->fvm400y = data.comp2;
+        sPacket->fvm400z = data.comp3;
+        fvm400Start = false;
+        lk.unlock();
+        fvm400_cv.notify_one();
+    }
+}
+#endif
+
 int main() {
 
     // initialize devices
@@ -150,25 +171,37 @@ int main() {
         // every second, do this 50 times
         for (int j=0; j<50; j++) {
 
+            sPacket = new SensorPacket();
             do { // delay a bit (20ms per packet)
                 gettimeofday(&next, nullptr);
                 difference = next.tv_usec - start.tv_usec + (next.tv_sec - start.tv_sec) * 1000000;
-                if (difference < timer) usleep(100);
+                if (difference < timer) usleep(20);
             } while (difference < timer);
             if (difference > 982000) break;
             //printf("started cycle at %li/%li\n", difference, timer);
 
-            sPacket = new SensorPacket();
             { // tell the TAM to collect data
                 std::lock_guard<std::mutex> lk(tam_m);
                 tamStart = true;
                 systemTimestamp(sPacket->sysTimeSeconds, sPacket->sysTimeuSeconds);
             } tam_cv.notify_one();
+#ifdef USE_FVM400
+            { // tell the FVM400 to collect data
+                std::lock_guard<std::mutex> lk(fvm400_m);
+                fvm400Start = true;
+            } fvm400_cv.notify_one();
+#endif
             imu(sPacket); // get IMU data
             { // wait for TAM to finish
                 std::unique_lock<std::mutex> lk(tam_m);
                 tam_cv.wait(lk, []{return !tamStart;});
             }
+#ifdef USE_FVM400
+            { // wait for FVM400 to finish
+                std::unique_lock<std::mutex> lk(fvm400_m);
+                fvm400_cv.wait(lk, []{return !fvm400Start;});
+            }
+#endif
             queue.push_tlm(sPacket);
 
             timer += 20000;
