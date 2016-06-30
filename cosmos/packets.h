@@ -95,9 +95,9 @@ class SensorPacket: public Packet {
          */
         uint32_t sysTimeSeconds;
         uint32_t sysTimeuSeconds;
-        float fvm400x;
-        float fvm400y;
-        float fvm400z;
+        int32_t fvm400x;
+        int32_t fvm400y;
+        int32_t fvm400z;
 };
 
 class CameraPacket: public Packet {

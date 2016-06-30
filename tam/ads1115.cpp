@@ -81,7 +81,7 @@ static int myAnalogRead(struct wiringPiNodeStruct *node, int pin) {
 int ads1115Setup(const int pinBase, int id) {
   struct wiringPiNodeStruct *node;
 
-  system("gpio load i2c 1000");
+  //system("gpio load i2c 1000");
 
   node = wiringPiNewNode(pinBase,4);
 

@@ -97,8 +97,10 @@ PI_THREAD (cmdThread) {
 }
 
 PI_THREAD (tamControl) {
+    std::unique_lock<std::mutex> lk(tam_m);
+    lk.unlock();
     while (true) {
-        std::unique_lock<std::mutex> lk(tam_m);
+        lk.lock();
         tam_cv.wait(lk, []{return tamStart;});
         tam(sPacket);
         tamStart = false;
@@ -112,10 +114,12 @@ std::mutex fvm400_m;
 std::condition_variable fvm400_cv;
 bool fvm400Start = false;
 PI_THREAD (fvm400Control) {
-    FVM400 mag("TODO");
+    FVM400 mag("/dev/ttyUSB1");
     FVM400_data data;
+    std::unique_lock<std::mutex> lk(fvm400_m);
+    lk.unlock();
     while (true) {
-        std::unique_lock<std::mutex> lk(fvm400_m);
+        lk.lock();
         fvm400_cv.wait(lk, []{return fvm400Start;});
         data = mag.getData();
         sPacket->fvm400x = data.comp1;
@@ -146,17 +150,27 @@ int main() {
     // set high priority for this thread
     pid_t pid = getpid();
     std::stringstream cmd;
-    cmd << "renice -n -2 -p " << pid;
+    cmd << "renice -n -1 -p " << pid;
     if (pid > 0) system(cmd.str().c_str());
 
     // initialize the TAM with the higher priority
     if (piThreadCreate(tamControl) != 0) {
         perror("TAM control thread didn't start");
     }
+#ifdef USE_FVM400
+    // initialize the FVM400 with the higher priority
+    if (piThreadCreate(fvm400Control) != 0) {
+        perror("FVM400 control thread didn't start");
+    }
+#endif
+    std::stringstream cmd2;
+    cmd2 << "renice -n -2 -p " << pid;
+    if (pid > 0) system(cmd2.str().c_str());
 
     // these values help time the packets
     long timer = 0, difference = 0;
     struct timeval start, next;
+    usleep(1000000);
     while (true) {
 
         // get timestamps and send time packet
@@ -165,11 +179,12 @@ int main() {
         start.tv_sec = tPacket->sysTimeSeconds;
         start.tv_usec = tPacket->sysTimeuSeconds;
         tPacket->gpsTime = gps.getTime();
+        //printf("pushed TIME packet with gpstime = %f\n", tPacket->gpsTime);
         queue.push_tlm(tPacket);
         difference = 0;
         timer = 0;
-        // every second, do this 50 times
-        for (int j=0; j<50; j++) {
+        // every second, do this 15 times
+        for (int j=0; j<15; j++) {
 
             sPacket = new SensorPacket();
             do { // delay a bit (20ms per packet)
@@ -177,7 +192,7 @@ int main() {
                 difference = next.tv_usec - start.tv_usec + (next.tv_sec - start.tv_sec) * 1000000;
                 if (difference < timer) usleep(20);
             } while (difference < timer);
-            if (difference > 982000) break;
+            if (difference > 940000) break;
             //printf("started cycle at %li/%li\n", difference, timer);
 
             { // tell the TAM to collect data
@@ -204,7 +219,7 @@ int main() {
 #endif
             queue.push_tlm(sPacket);
 
-            timer += 20000;
+            timer += 66666;
         }
     }
     return 0;
