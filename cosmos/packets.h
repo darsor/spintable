@@ -4,11 +4,19 @@
 #ifndef PACKETS_H
 #define PACKETS_H
 
+<<<<<<< HEAD
 #define TIME_PKT_SIZE           18
 #define SENSOR_PKT_SIZE         98
 #define CAM_PKT_SIZE            76814
 #define ENC_PKT_SIZE            30
 #define CAM_CMD_SIZE            8
+=======
+#define TIME_PKT_SIZE       18
+#define SENSOR_PKT_SIZE     86
+#define CAM_PKT_SIZE        76814
+#define ENC_PKT_SIZE        30
+#define CAM_CMD_SIZE        8
+>>>>>>> parent of ff503c8... working commands
 #define MOTOR_SET_HOME_SIZE     6
 #define MOTOR_SET_SPEED_SIZE    8
 #define MOTOR_ABS_POS_SIZE      10

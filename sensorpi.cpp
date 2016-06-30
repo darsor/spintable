@@ -33,7 +33,11 @@ TimePacket* tPacket = nullptr;
 SensorPacket* sPacket = nullptr;
 
 // make the CosmosQueue global (so that all threads can access it)
+<<<<<<< HEAD
 CosmosQueue queue(4810, 512, 8);
+=======
+CosmosQueue queue(4810, 256);
+>>>>>>> parent of ff503c8... working commands
 
 std::atomic<bool> camera_state;
 std::condition_variable camera_cv;
