@@ -49,9 +49,9 @@ SensorPacket::SensorPacket(): Packet(SENSOR_PKT_SIZE, SENSOR_PKT_ID) {
 }
 
 void SensorPacket::convert() {
+    float f;
     uint16_t u16;
     uint32_t u32;
-    int32_t i32;
     u32 = htonl(length);
     memcpy(buffer+0,  &u32, 4);
     u16 = htons(id);
@@ -68,12 +68,15 @@ void SensorPacket::convert() {
     memcpy(buffer+78, &u32, 4);
     u32 = htonl(sysTimeuSeconds);
     memcpy(buffer+82, &u32, 4);
-    i32 = htonl(fvm400x);
-    memcpy(buffer+86, &i32, 4);
-    i32 = htonl(fvm400y);
-    memcpy(buffer+90, &i32, 4);
-    i32 = htonl(fvm400z);
-    memcpy(buffer+94, &i32, 4);
+    f = fvm400x;
+    endianSwap(f);
+    memcpy(buffer+86, &f, 4);
+    f = fvm400y;
+    endianSwap(f);
+    memcpy(buffer+90, &f, 4);
+    f = fvm400z;
+    endianSwap(f);
+    memcpy(buffer+94, &f, 4);
 };
 
 CameraPacket::CameraPacket(): Packet(CAM_PKT_SIZE, CAM_PKT_ID) {}

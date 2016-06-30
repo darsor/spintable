@@ -76,7 +76,7 @@ int Imu::readComPort(unsigned char* bytes, int size){
     int bytesRead = read(comPort, bytes, size);
     int temp;
     while (bytesRead<size) {
-        temp = read(comPort, &(bytes[bytesRead]), size - bytesRead);
+        temp = read(comPort, &bytes[bytesRead], size - bytesRead);
         bytesRead += temp;
         if (bytesRead < size && temp == 0) return 0;
     }
@@ -128,9 +128,12 @@ char* scandev(){
 
 //constructor for the IMU class. Finds and establishes a connection
 //with the IMU.
-Imu::Imu(std::string dev){
-    comPort = OpenComPort(dev.c_str());
-        /*dev=scandev();
+Imu::Imu(){
+    char* dev;
+    char a;
+    a='\0';
+    dev=&a;
+        dev=scandev();
         if(strcmp(dev,"")!=0){
             printf("Attempting to open port... ");
             comPort = OpenComPort(dev);
@@ -138,7 +141,7 @@ Imu::Imu(std::string dev){
         else{
             printf("Failed to find attached device.\n");
             return;
-        }*/
+        }
     if(comPort > 0)  
     printf("IMU connected.\n");
 }
@@ -155,15 +158,6 @@ void Imu::getdata(Byte (&data)[43]) {
         writeComPort(&dataCommand, 1); // write command to port
 
         size = readComPort(&data[0], 43);
-    } while (size == 0);
-}
-
-void Imu::getMagnetometer(Byte (&data)[19]) {
-    int size;
-    do {
-        Purge(comPort); // flush port
-        writeComPort(&magCommand, 1); // write command to port
-        size = readComPort(&data[0], 19);
     } while (size == 0);
 }
 

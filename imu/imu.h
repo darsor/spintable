@@ -2,7 +2,6 @@
 #define IMU_H
 
 #include <cstdint>
-#include <string>
 
 typedef int ComPortHandle;
 typedef unsigned char Byte;
@@ -35,10 +34,9 @@ class Imu{
     private:
         unsigned char dataCommand = (char) 0xCB;
         unsigned char quatCommand = (char) 0xDF;
-        unsigned char  magCommand = (char) 0xC7;
         ComPortHandle comPort;
     public:
-        Imu(std::string dev);
+        Imu();
         ~Imu();
         void printHexByte(char byte);
         void calcChecksum(char* data, int size, uint16_t* checksum);
@@ -70,15 +68,6 @@ class Imu{
              *  Bytes 18-21 Timer   32-bit Unsigned Integer
              *  Bytes 22-23 Checksum
              */
-        void getMagnetometer (Byte (&data)[19]);
-        /* Writes the following data to the 23-byte buffer
-         *  Byte  1     0xC7    Command Echo
-         *  Bytes 2-5   Mag_x   (IEEE-754 Floating Point)
-         *  Bytes 6-9   Mag_y   (IEEE-754 Floating Point)
-         *  Bytes 10-13 Mag_z   (IEEE-754 Floating Point)
-         *  Bytes 14-17 Timer   32-bit Unsigned Integer
-         *  Bytes 18-19 Checksum
-         */
 };
 
 #endif
