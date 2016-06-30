@@ -5,7 +5,7 @@
 #define PACKETS_H
 
 #define TIME_PKT_SIZE           18
-#define SENSOR_PKT_SIZE         98
+#define SENSOR_PKT_SIZE         86
 #define CAM_PKT_SIZE            76814
 #define ENC_PKT_SIZE            30
 #define CAM_CMD_SIZE            8
@@ -95,9 +95,6 @@ class SensorPacket: public Packet {
          */
         uint32_t sysTimeSeconds;
         uint32_t sysTimeuSeconds;
-        float fvm400x;
-        float fvm400y;
-        float fvm400z;
 };
 
 class CameraPacket: public Packet {
