@@ -16,6 +16,7 @@ class Gps {
         ~Gps();
         float getTime(); // blocks until the next timestamp sent from GPS
         void timestampPPS(uint32_t &stime, uint32_t &ustime);
+        bool dataAvail();
 };
 
 #endif

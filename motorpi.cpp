@@ -115,6 +115,7 @@ int main() {
 
         // get timestamps and send time packet
         tPacket = new TimePacket();
+        while (!gps.dataAvail()) usleep(100);
         gps.timestampPPS(tPacket->sysTimeSeconds, tPacket->sysTimeuSeconds);
         start.tv_sec = tPacket->sysTimeSeconds;
         start.tv_usec = tPacket->sysTimeuSeconds;

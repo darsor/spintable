@@ -95,6 +95,10 @@ float Gps::getTime() {
     return ftime;
 }
 
+bool Gps::dataAvail() {
+    return (serialDataAvail(fd) <= 0) ? false : true;
+}
+
 void ppsISR() {
     gettimeofday(&time_val, NULL);
     {
