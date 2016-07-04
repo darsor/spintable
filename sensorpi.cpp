@@ -45,6 +45,8 @@ PI_THREAD (cameraControl) {
     camera.setWidth(320);
     camera.setHeight(240);
     camera.setFormat(RASPICAM_FORMAT_GRAY);
+    camera.setHorizontalFlip(true);
+    camera.setVerticalFlip(true);
     while (true) {
         if (camera_state.load()) {
             cPacket = new CameraPacket();
