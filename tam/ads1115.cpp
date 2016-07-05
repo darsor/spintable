@@ -11,6 +11,9 @@
 #include <wiringPi.h>
 #include <wiringPiI2C.h>
 #include <cstdlib>
+#include <cstdint>
+#include <cstdio>
+#include <unistd.h>
 
 #include "ads1115.h"
 
@@ -19,19 +22,18 @@
 
 static int myAnalogRead(struct wiringPiNodeStruct *node, int pin) {
   int chan = pin - node->pinBase;
-  int data[2];
-  int value;
+  int16_t value;
 
   // Start with default values
   int config = ADS1015_REG_CONFIG_CQUE_NONE    | // Disable the comparator (default val)
-                    ADS1015_REG_CONFIG_CLAT_NONLAT  | // Non-latching (default val)
-                    ADS1015_REG_CONFIG_CPOL_ACTVLOW | // Alert/Rdy active low   (default val)
-                    ADS1015_REG_CONFIG_CMODE_TRAD   | // Traditional comparator (default val)
-                    ADS1115_REG_CONFIG_DR_860SPS   | // 860 samples per second (max)
-                    ADS1015_REG_CONFIG_MODE_SINGLE;   // Single-shot mode (default)
-                    //ADS1015_REG_CONFIG_MODE_CONTIN;   // Continuous mode (doesn't work with more than one channel)
+               ADS1015_REG_CONFIG_CLAT_NONLAT  | // Non-latching (default val)
+               ADS1015_REG_CONFIG_CPOL_ACTVLOW | // Alert/Rdy active low   (default val)
+               ADS1015_REG_CONFIG_CMODE_TRAD   | // Traditional comparator (default val)
+               ADS1115_REG_CONFIG_DR_475SPS    | // 475 samples per second
+               ADS1015_REG_CONFIG_MODE_SINGLE;   // Single-shot mode (default)
+             //ADS1015_REG_CONFIG_MODE_CONTIN;   // Continuous mode (doesn't work with more than one channel)
   // Set PGA/voltage range
-  config |= ADS1015_REG_CONFIG_PGA_4_096V;
+  config |= ADS1015_REG_CONFIG_PGA_6_144V;
 
   // Set single-ended input chan
   switch (chan)
@@ -59,18 +61,13 @@ static int myAnalogRead(struct wiringPiNodeStruct *node, int pin) {
  
   // Wait for conversion to complete
   delay(2); // (1/SPS rounded up)
+  //usleep(1500);
 
-  wiringPiI2CWrite(node->fd, ADS1015_REG_POINTER_CONVERT);
-  data[0] = wiringPiI2CRead(node->fd);
-  data[1] = wiringPiI2CRead(node->fd);
-  value = ((data[0] << 8) & 0xFF00) | data[1];
-
-  // wiringPi doesn't include stdint so everything is an int (int32), this should account for this
-  if (value > 0x7FFF) {
-    return (value - 0xFFFF);
-  } else {
-    return value;
-  }
+  //wiringPiI2CWrite(node->fd, ADS1015_REG_POINTER_CONVERT);
+  value = wiringPiI2CReadReg16 (node->fd, ADS1015_REG_POINTER_CONVERT);
+  value = ((value & 0x00FF) << 8) | ((value & 0xFF00) >> 8);
+  //if (chan == 0) printf("TAM: %-6i (%02x%02x)\n", value, (value & 0xFF00) >> 8, value & 0x00FF);
+  return value;
 }
 
 /* ADS1115 ADC setup:
