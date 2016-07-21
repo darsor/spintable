@@ -11,6 +11,7 @@ std::mutex write_mutex;
 std::mutex read_mutex;
 
 Cosmos::Cosmos(int portno): port(portno) {
+    fflush(stdout);
     // ignore sigpipe signal - don't stop program when writing to closed socket
     // (it will be handled instead)
     signal(SIGPIPE, SIG_IGN);
@@ -71,8 +72,8 @@ int Cosmos::sendPacket(unsigned char* buffer, int size) {
     write_mutex.unlock();
     if (bytes < 0) {
         perror("ERROR on send");
-        return -1;
-    } else return bytes;
+    }
+    return bytes;
 }
 
 int Cosmos::recvPacket(unsigned char* buffer, int size) {

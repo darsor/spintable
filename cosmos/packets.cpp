@@ -113,25 +113,29 @@ void EncoderPacket::convert() {
 CameraPowerCmd::CameraPowerCmd(): Packet(CAM_CMD_SIZE, CAM_CMD_ID) {}
 
 void CameraPowerCmd::convert() {
-    state = ntohs(*((uint16_t*) (buffer+6)));
+    static uint16_t u16;
+    memcpy(&u16, buffer+6, sizeof(u16));
+    state = ntohs(u16);
 }
 
 SetSpeedCmd::SetSpeedCmd() : Packet(MOTOR_SET_SPEED_SIZE, MOTOR_SET_SPEED_ID) {}
 
 void SetSpeedCmd::convert() {
-    speed = ntohs(*((int16_t*) (buffer+6)));
+    static int16_t i16;
+    memcpy(&i16, buffer+6, sizeof(i16));
+    speed = ntohs(i16);
 }
 
 SetAbsPosCmd::SetAbsPosCmd() : Packet(MOTOR_ABS_POS_SIZE, MOTOR_ABS_POS_ID) {}
 
 void SetAbsPosCmd::convert() {
-    position = *((float*) (buffer+6));
+    memcpy(&position, buffer+6, sizeof(position));
     endianSwap(position);
 }
 
 SetRevPosCmd::SetRevPosCmd() : Packet(MOTOR_REV_POS_SIZE, MOTOR_REV_POS_ID) {}
 
 void SetRevPosCmd::convert() {
-    position = *((float*) (buffer+6));
+    memcpy(&position, buffer+6, sizeof(position));
     endianSwap(position);
 }
