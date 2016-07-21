@@ -33,7 +33,7 @@ TimePacket* tPacket = nullptr;
 SensorPacket* sPacket = nullptr;
 
 // make the CosmosQueue global (so that all threads can access it)
-CosmosQueue queue(4810, 256, 8);
+CosmosQueue queue(4810, 1024, 8);
 
 std::atomic<bool> camera_state;
 std::condition_variable camera_cv;
@@ -47,6 +47,7 @@ PI_THREAD (cameraControl) {
     camera.setFormat(RASPICAM_FORMAT_GRAY);
     camera.setHorizontalFlip(true);
     camera.setVerticalFlip(true);
+    camera.setShutterSpeed(1000);
     while (true) {
         if (camera_state.load()) {
             cPacket = new CameraPacket();
@@ -113,11 +114,15 @@ PI_THREAD (tamControl) {
 }
 
 int main() {
+    printf("In main loop\n");
 
     // initialize devices
     Gps gps(1, "/dev/ttyAMA0", 9600);
+    printf("gps connected\n");
     imu(sPacket);
+    printf("imu initialized\n");
     tam(sPacket);
+    printf("tam initialized\n");
 
     // start threads
     if (piThreadCreate(cameraControl) != 0) {
@@ -138,6 +143,8 @@ int main() {
         perror("TAM control thread didn't start");
     }
 
+    usleep(1000000);
+
     // these values help time the packets
     long timer = 0, difference = 0;
     struct timeval start, next;
@@ -150,6 +157,7 @@ int main() {
         start.tv_sec = tPacket->sysTimeSeconds;
         start.tv_usec = tPacket->sysTimeuSeconds;
         tPacket->gpsTime = gps.getTime();
+        //printf("pushing time packet\n");
         queue.push_tlm(tPacket);
         difference = 0;
         timer = 0;
@@ -159,6 +167,7 @@ int main() {
             do { // delay a bit (20ms per packet)
                 gettimeofday(&next, nullptr);
                 difference = next.tv_usec - start.tv_usec + (next.tv_sec - start.tv_sec) * 1000000;
+                //printf("difference is %li/%li\n", difference, timer);
                 if (difference < timer) usleep(100);
             } while (difference < timer);
             if (difference > 982000) break;
@@ -175,6 +184,7 @@ int main() {
                 std::unique_lock<std::mutex> lk(tam_m);
                 tam_cv.wait(lk, []{return !tamStart;});
             }
+            //printf("pushing imu packet #%d to the queue\n", j);
             queue.push_tlm(sPacket);
 
             timer += 20000;
