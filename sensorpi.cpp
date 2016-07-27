@@ -33,7 +33,7 @@ TimePacket* tPacket = nullptr;
 SensorPacket* sPacket = nullptr;
 
 // make the CosmosQueue global (so that all threads can access it)
-CosmosQueue queue(4810, 1024, 8);
+CosmosQueue queue(4810, 24000, 8);
 
 std::atomic<bool> camera_state;
 std::condition_variable camera_cv;
@@ -159,6 +159,7 @@ int main() {
         tPacket->gpsTime = gps.getTime();
         //printf("pushing time packet\n");
         queue.push_tlm(tPacket);
+        printf("queue contains %d packets\n", queue.tlmSize());
         difference = 0;
         timer = 0;
         // every second, do this 50 times

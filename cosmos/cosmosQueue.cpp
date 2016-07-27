@@ -160,7 +160,7 @@ void CosmosQueue::cmd_thread() {
                 // get the id to know what command it is
                 memcpy(&u16, buffer+4, sizeof(u16));
                 id = ntohs(u16);
-                cmd = new Packet(length, id);
+                cmd = new Packet(length, id, true);
                 memcpy(cmd->buffer, buffer, length);
                 push_cmd(cmd);
             }

@@ -40,7 +40,7 @@ inline void endianSwap(float &f) {
 
 class Packet {
     public:
-        Packet(const uint32_t length, const uint16_t id);
+        Packet(const uint32_t length, const uint16_t id, bool cmd = false);
         Packet(const Packet& that);
         Packet& operator=(const Packet& that);
         virtual ~Packet();
@@ -100,8 +100,9 @@ class SensorPacket: public Packet {
 class CameraPacket: public Packet {
     public:
         CameraPacket();
+        ~CameraPacket();
         void convert();
-        unsigned char pBuffer[76800];
+        unsigned char* pBuffer;
         uint32_t sysTimeSeconds;
         uint32_t sysTimeuSeconds;
 };

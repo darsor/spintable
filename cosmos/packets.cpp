@@ -3,21 +3,22 @@
 #include <cstring>
 #include <cstdio>
 
-Packet::Packet(const uint32_t length, const uint16_t id):
+Packet::Packet(const uint32_t length, const uint16_t id, bool cmd):
     length(length), id(id) {
-    buffer = new unsigned char[length];
+    if (cmd) buffer = new unsigned char[length];
+    else buffer = nullptr;
 }
 Packet::Packet(const Packet& that): length(that.length), id(that.id) {
-    buffer = new unsigned char[that.length];
+    buffer = nullptr;
 }
 Packet::~Packet() {
-    delete[] buffer;
+    if (buffer) delete[] buffer;
 }
 Packet& Packet::operator=(const Packet& that) {
     if (this != &that)
     {
-        delete[] buffer;
-        buffer = new unsigned char[that.length];
+        if (buffer) delete[] buffer;
+        buffer = nullptr;
         length = that.length;
         id = that.id;
     }
@@ -28,6 +29,7 @@ void Packet::convert() { printf("Virtual convert() called. That's a problem\n");
 TimePacket::TimePacket(): Packet(TIME_PKT_SIZE, TIME_PKT_ID) {}
 
 void TimePacket::convert() {
+    if (!buffer) buffer = new unsigned char[length];
     uint16_t u16;
     uint32_t u32;
     float f;
@@ -47,6 +49,7 @@ void TimePacket::convert() {
 SensorPacket::SensorPacket(): Packet(SENSOR_PKT_SIZE, SENSOR_PKT_ID) {}
 
 void SensorPacket::convert() {
+    if (!buffer) buffer = new unsigned char[length];
     uint16_t u16;
     uint32_t u32;
     u32 = htonl(length);
@@ -67,9 +70,16 @@ void SensorPacket::convert() {
     memcpy(buffer+82, &u32, 4);
 };
 
-CameraPacket::CameraPacket(): Packet(CAM_PKT_SIZE, CAM_PKT_ID) {}
+CameraPacket::CameraPacket(): Packet(CAM_PKT_SIZE, CAM_PKT_ID) {
+    pBuffer = new unsigned char[76800];
+}
+
+CameraPacket::~CameraPacket() {
+    delete[] pBuffer;
+}
 
 void CameraPacket::convert() {
+    if (!buffer) buffer = new unsigned char[length];
     uint16_t u16;
     uint32_t u32;
     u32 = htonl(length);
@@ -90,6 +100,7 @@ void EncoderPacket::convert() {
     static uint32_t u32;
     static int32_t i32;
     static float f;
+    if (!buffer) buffer = new unsigned char[length];
     u32 = htonl(length);
     memcpy(buffer+0,  &u32, 4);
     u16 = htons(id);
