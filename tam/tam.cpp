@@ -1,15 +1,17 @@
-//Implementation file for the TAM class.  Necessary header files
-//are tam.h and ads1115.h.  ads1115.h is included within tam.h
 #include "tam.h"
+#include <cstdio>
+#include <wiringPi.h>
 
-Tam::Tam() {
-    ads1115Setup(100, 0x48);
-    wiringPiSetup();
+Tam::Tam(int pinBase, int addr): pinBase(pinBase), addr(addr) {
+    try {
+        ads1115Setup(pinBase, addr);
+        wiringPiSetup();
+    } catch (...) {}
 }
 
 uint16_t Tam::getData(int channel) {
 	if (channel >= 0 && channel <= 3) {
-		channel += 100;
+		channel += pinBase;
 	} else {
         printf("%s \n", "Invalid output channel");
         return 0;

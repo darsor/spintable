@@ -1,42 +1,38 @@
-/**********************
- * Packet Definitions *
- **********************/
 #ifndef PACKETS_H
 #define PACKETS_H
 
+#define TIME_PKT_ID             0x00
 #define TIME_PKT_SIZE           18
-#define SENSOR_PKT_SIZE         86
+
+#define TAM_PKT_ID              0x10
+#define TAM_PKT_SIZE            36
+
+#define IMU_PKT_ID              0x20
+#define IMU_PKT_SIZE            88
+
+#define CAM_PKT_ID              0x30
 #define CAM_PKT_SIZE            76814
-#define ENC_PKT_SIZE            30
+#define CAM_CMD_ID              0x31
 #define CAM_CMD_SIZE            8
+
+#define ENC_PKT_ID              0x40
+#define ENC_PKT_SIZE            18
+
+#define MOTOR_SET_HOME_ID       0x41
 #define MOTOR_SET_HOME_SIZE     6
+#define MOTOR_SET_SPEED_ID      0x42
 #define MOTOR_SET_SPEED_SIZE    8
+#define MOTOR_ABS_POS_ID        0x43
 #define MOTOR_ABS_POS_SIZE      10
+#define MOTOR_REV_POS_ID        0x44
 #define MOTOR_REV_POS_SIZE      10
+#define MOTOR_GOTO_INDEX_ID     0x45
 #define MOTOR_GOTO_INDEX_SIZE   6
 
-#define TIME_PKT_ID             1
-#define SENSOR_PKT_ID           2
-#define CAM_PKT_ID              3
-#define ENC_PKT_ID              4
-#define CAM_CMD_ID              5
-#define MOTOR_SET_HOME_ID       9
-#define MOTOR_SET_SPEED_ID      10
-#define MOTOR_ABS_POS_ID        11
-#define MOTOR_REV_POS_ID        12
-#define MOTOR_GOTO_INDEX_ID     13
+#define HK_PKT_ID               0xFF
+#define HK_PKT_SIZE             27
 
 #include <cstdint>
-
-inline void endianSwap(float &f) {
-    float temp = f;
-    unsigned char* pf = (unsigned char*) &f;
-    unsigned char* pt = (unsigned char*) &temp;
-    pf[0] = pt[3];
-    pf[1] = pt[2];
-    pf[2] = pt[1];
-    pf[3] = pt[0];
-}
 
 class Packet {
     public:
@@ -55,17 +51,26 @@ class TimePacket: public Packet {
         TimePacket();
         void convert();
         float gpsTime;
-        uint32_t sysTimeSeconds;
-        uint32_t sysTimeuSeconds;
+        uint64_t systemTime;
 };
 
-class SensorPacket: public Packet {
+class TamPacket: public Packet {
     public:
-        SensorPacket();
+        TamPacket();
         void convert();
+        uint64_t timeA;
         uint16_t tamA;
+        uint64_t timeB;
         uint16_t tamB;
+        uint64_t timeC;
         uint16_t tamC;
+};
+
+class ImuPacket: public Packet {
+    public:
+        ImuPacket();
+        void convert();
+        uint64_t dataTimestamp;
         unsigned char imuData[43];
         /* This buffer receives the following data:
          *  Byte  1     0xCB     Command Echo
@@ -82,6 +87,7 @@ class SensorPacket: public Packet {
          *  Bytes 42-43 Checksum
          * NOTE: this data will be parsed by COSMOS when it arrives
          */
+        uint64_t quatTimestamp;
         unsigned char imuQuat[23];
         /* This buffer receives the following quaternion data:
          *  Byte  1     0xDF    Command Echo
@@ -93,8 +99,6 @@ class SensorPacket: public Packet {
          *  Bytes 22-23 Checksum
          * NOTE: this data will be parsed by COSMOS when it arrives
          */
-        uint32_t sysTimeSeconds;
-        uint32_t sysTimeuSeconds;
 };
 
 class CameraPacket: public Packet {
@@ -102,9 +106,8 @@ class CameraPacket: public Packet {
         CameraPacket();
         ~CameraPacket();
         void convert();
+        uint64_t timestamp;
         unsigned char* pBuffer;
-        uint32_t sysTimeSeconds;
-        uint32_t sysTimeuSeconds;
 };
 
 class EncoderPacket: public Packet {
@@ -114,9 +117,17 @@ class EncoderPacket: public Packet {
         uint32_t sysTimeSeconds;
         uint32_t sysTimeuSeconds;
         int32_t raw_cnt;
-        float motorSpeed;
-        float position;
-        int32_t rev_cnt;
+};
+
+class HKPacket: public Packet {
+    public:
+        HKPacket();
+        void convert();
+        uint64_t timestamp;
+        uint16_t queue_size;
+        float cpu_temp;
+        float cpu_load;
+        uint32_t mem_usage;
 };
 
 class CameraPowerCmd: public Packet {

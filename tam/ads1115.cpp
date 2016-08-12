@@ -1,5 +1,3 @@
-//We used this code for testing purposes for the analog/digital
-//converter for the Analog Magnetometer
 /*
  * ADS1115 driver for wiringPi:
  *    https://projects.drogon.net/raspberry-pi/wiringpi/
@@ -86,6 +84,7 @@ int ads1115Setup(const int pinBase, int id) {
   node->analogRead = myAnalogRead;
 
   if (node->fd < 0) {
+    throw 1;
     return -1;
   } else {
     return 0;

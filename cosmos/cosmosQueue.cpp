@@ -108,6 +108,15 @@ unsigned int CosmosQueue::cmdSize() {
     return cmdQueue.size();
 }
 
+uint16_t CosmosQueue::cmd_front_id() {
+    uint16_t temp;
+    cmd_mutex.lock();
+    if (cmdSize() > 0) temp = cmdQueue.front()->id;
+    else temp = -1;
+    cmd_mutex.unlock();
+    return temp;
+}
+
 void CosmosQueue::connect() {
     cosmos.acceptConnection();
     connected.store(true);
@@ -133,8 +142,8 @@ void CosmosQueue::tlm_thread() {
 
 void CosmosQueue::cmd_thread() {
     unsigned char buffer[128];
-    uint32_t length, u32;;
-    uint16_t id, u16;
+    uint32_t length;
+    uint16_t id;
     Packet* cmd;
     while (true) {
         connection_mutex.lock();
@@ -142,24 +151,25 @@ void CosmosQueue::cmd_thread() {
         connection_mutex.unlock();
         while (connected.load()) {
             // receive the first four bytes (the length of the packet);
-            if (cosmos.recvPacket(buffer, 4) < 4) {
-                printf("received fewer than 4 bytes\n");
-                usleep(100000);
-                continue;
+            if (cosmos.recvPacket(buffer, 4) < 0) {
+                connected.store(false);
+                break;
             } else {
-                memcpy(&u32, buffer, sizeof(u32));
-                length = ntohl(u32);
+                memcpy(&length, buffer, sizeof(length));
                 printf("received packet of length %u\n", length);
-                if (length < 6) continue;
+                if (length < 6) {
+                    connected.store(false);
+                    break;
+                }
                 // receive the rest of the packet
                 if (cosmos.recvPacket(buffer+4, length-4) < (int)(length-4)) {
                     printf("failed to fetch entire packet\n");
-                    usleep(100000);
-                    continue;
+                    connected.store(false);
+                    break;
                 }
                 // get the id to know what command it is
-                memcpy(&u16, buffer+4, sizeof(u16));
-                id = ntohs(u16);
+                memcpy(&id, buffer+4, sizeof(id));
+                printf("id is %d\n", id);
                 cmd = new Packet(length, id, true);
                 memcpy(cmd->buffer, buffer, length);
                 push_cmd(cmd);

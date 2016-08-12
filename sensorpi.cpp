@@ -1,225 +1,215 @@
-#include "cosmos/cosmosQueue.h"
-#include "gps/gps.h"
-//#include "camera/camera.h"
-#include "tam/tam.h"
-#include "imu/imu.h"
-#include <raspicam/raspicam.h>
-#include <wiringPi.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <sstream>
-#include <cstdio>
-#include <mutex>
-#include <condition_variable>
+#include "cosmos/cosmosQueue.h" // for cosmos and packet queues
+#include "gps/gps.h"            // for gps interface
+#include "tam/tam.h"            // for tam interface
+#include "imu/imu.h"            // for imu interface
+#include <raspicam/raspicam.h>  // for camera interface
+#include <sys/sysinfo.h>        // for memory usage info
+#include <chrono>               // for timestamps
+#include <thread>               // for multithreading
+#include <unistd.h>             // for linux functions
+#include <sstream>              // for sstream objects
+#include <fstream>              // for reading files (housekeeping)
+#include <cstdio>               // for perror() and printf()
 
-using namespace raspicam;
+// this queue automatically opens a port for COSMOS.
+// any packets pushed to the tlm_queue will be sent to COSMOS.
+// any received packets will be found on the cmd_queue.
+CosmosQueue queue(4810, 20000, 8);
 
-// gather data from various sensors
-void imu(SensorPacket* p);
-void tam(SensorPacket* p);
-void systemTimestamp(uint32_t &stime, uint32_t &ustime);
-//void camera(CameraPacket* p);
+// function prototype for getTimeStamp() (defined at the bottom), which
+// returns the time in microseconds since unix epoch
+uint64_t getTimestamp();
 
-// set up condition variables to wake the TAM and GPS threads
-std::mutex tam_m;
-std::condition_variable tam_cv;
-bool tamStart = false;
-std::mutex gps_m;
-std::condition_variable gps_cv;
-bool gpsStart = false;
+//TODO: redefine packet ID's
+// this thread creates and sends TamPackets
+void tam_thread() {
+    TamPacket* tPacket = nullptr;
+    Tam* tam = nullptr;
 
-// initialize packets
-TimePacket* tPacket = nullptr;
-SensorPacket* sPacket = nullptr;
+    // try opening the TAM every ten seconds until it succeeds
+    while (true) {
+        try {
+            tam = new Tam(100, 0x48);
+            printf("Successfully connected to the TAM\n");
+            break;
+        } catch (int e) {
+            printf("FAILED to connect to the TAM. Trying again in 10 seconds...\n");
+            sleep(10);
+        }
+    }
 
-// make the CosmosQueue global (so that all threads can access it)
-CosmosQueue queue(4810, 24000, 8);
+    // repeatedly create and send packets
+    //TODO: add robust error checking here
+    while(true) {
+        tPacket = new TamPacket;
 
-std::atomic<bool> camera_state;
-std::condition_variable camera_cv;
-std::mutex camera_mutex;
-PI_THREAD (cameraControl) {
-    camera_state.store(false);
+        tPacket->timeA = getTimestamp();
+        tPacket->tamA = tam->getData(0);
+        tPacket->timeB = getTimestamp();
+        tPacket->tamB = tam->getData(1);
+        tPacket->timeC = getTimestamp();
+        tPacket->tamC = tam->getData(2);
+
+        queue.push_tlm(tPacket);
+    }
+}
+
+// this thread creates and sends ImuPackets
+void imu_thread() {
+    ImuPacket* iPacket = nullptr;
+    Imu* imu = nullptr;
+
+    // try opening the IMU every ten seconds until it succeeds
+    while (true) {
+        try {
+            imu = new Imu();
+            printf("Successfully connected to the IMU\n");
+            break;
+        } catch (int e) {
+            printf("FAILED to connect to the IMU. Trying again in 10 seconds...\n");
+            sleep(10);
+        }
+    }
+
+    //TODO: add robust error checking here
+    while (true) {
+        iPacket = new ImuPacket;
+
+        iPacket->dataTimestamp = getTimestamp();
+        imu->getdata(iPacket->imuData);
+        iPacket->quatTimestamp = getTimestamp();
+        imu->getQuaternion(iPacket->imuQuat);
+
+        queue.push_tlm(iPacket);
+    }
+}
+
+// this thread creates and sends CamPackets
+void camera_thread() {
     CameraPacket* cPacket = nullptr;
+    Packet* cmdPacket = nullptr;
+
     raspicam::RaspiCam camera;
     camera.setWidth(320);
     camera.setHeight(240);
-    camera.setFormat(RASPICAM_FORMAT_GRAY);
+    camera.setFormat(raspicam::RASPICAM_FORMAT_GRAY);
     camera.setHorizontalFlip(true);
     camera.setVerticalFlip(true);
     camera.setShutterSpeed(1000);
-    while (true) {
-        if (camera_state.load()) {
-            cPacket = new CameraPacket();
-            camera.grab();
-            systemTimestamp(cPacket->sysTimeSeconds, cPacket->sysTimeuSeconds);
-            camera.retrieve(cPacket->pBuffer);
-            queue.push_tlm(cPacket);
-            usleep(5000);
-        } else {
-            camera.release();
-            std::unique_lock<std::mutex> lk(camera_mutex);
-            camera_cv.wait(lk, []{return camera_state.load();});
-            if (!camera.open()) {
-                printf("ERROR: Camera not opened\n");
-                return nullptr;
-            } else {
-                printf("Camera opened\n");
-                usleep(2500000);
-            }
-        }
-    }
-    return nullptr;
-}
 
-PI_THREAD (cmdThread) {
-    Packet* cmdPacket = nullptr;
+    //TODO: add robust error checking here
     while (true) {
-        if (queue.pop_cmd(cmdPacket)) {
-            switch (cmdPacket->id) {
-                case CAM_CMD_ID:
-                    {
-                        CameraPowerCmd* camCmd = static_cast<CameraPowerCmd*>(cmdPacket);
-                        camCmd->CameraPowerCmd::convert();
-                        if (camCmd->state) {
-                            std::lock_guard<std::mutex> lk(camera_mutex);
-                            camera_state.store(true);
-                            camera_cv.notify_one();
-                            printf("Camera enabled\n");
-                        } else {
-                            camera_state.store(false);
-                            printf("Camera disabled\n");
-                        }
-                    }
-                    break;
-                default:
-                    printf("unknown command received\n");
+        if (queue.cmdSize() > 0 && queue.cmd_front_id() == CAM_CMD_ID) {
+            queue.pop_cmd(cmdPacket);
+            CameraPowerCmd* cCmd = static_cast<CameraPowerCmd*>(cmdPacket);
+            cCmd->CameraPowerCmd::convert();
+            if (cCmd->state && !camera.isOpened()) {
+                while (!camera.open()) {
+                    printf("FAILED to connect to the camera. Trying again in 10 seconds...\n");
+                    camera.release();
+                    sleep(10);
+                }
+                printf("Successfully connected to the camera\n");
+            } else if (!cCmd->state) {
+                camera.release();
+                printf("Disconnected from the camera\n");
             }
-            delete cmdPacket;
-            cmdPacket = nullptr;
         }
-        usleep(200000);
+        cPacket = new CameraPacket;
+
+        camera.grab();
+        cPacket->timestamp = getTimestamp();
+        camera.retrieve(cPacket->pBuffer);
+
+        queue.push_tlm(cPacket);
     }
 }
 
-PI_THREAD (tamControl) {
+// this thread puts together a housekeeping packet that it
+// queues every second
+void housekeeping_thread() {
+
+    // set low priority for this thread
+    pid_t pid = getpid();
+    std::stringstream cmd;
+    cmd << "renice -n +1 -p " << pid;
+    if (pid > 0) system(cmd.str().c_str());
+
+    // load needed files
+    HKPacket* hkPacket = nullptr;
+    std::ifstream tempfile("/sys/class/thermal/thermal_zone0/temp");
+    std::ifstream loadfile("/proc/loadavg");
+    std::string tmp;
+    struct sysinfo memInfo;
+
+    // get and send housekeeping packet repeatedly
     while (true) {
-        std::unique_lock<std::mutex> lk(tam_m);
-        tam_cv.wait(lk, []{return tamStart;});
-        tam(sPacket);
-        tamStart = false;
-        lk.unlock();
-        tam_cv.notify_one();
+        hkPacket = new HKPacket;
+        hkPacket->timestamp = getTimestamp();
+        hkPacket->queue_size = queue.tlmSize();
+
+        // look at the system file that has the cpu temperature
+        tempfile.seekg(std::ios_base::beg);
+        getline(tempfile, tmp);
+        hkPacket->cpu_temp = stof(tmp) / 1000;
+
+        // look at the system file that has the cpu load average
+        loadfile.seekg(std::ios_base::beg);
+        getline(loadfile, tmp);
+        hkPacket->cpu_load = stof(tmp);
+
+        // get currently used virtual memory
+        sysinfo(&memInfo);
+        hkPacket->mem_usage = memInfo.totalram - memInfo.freeram;
+        hkPacket->mem_usage += memInfo.totalswap - memInfo.freeswap;
+        hkPacket->mem_usage *= memInfo.mem_unit;
+
+        queue.push_tlm(hkPacket);
+        sleep(1);
     }
+    tempfile.close();
+    loadfile.close();
 }
 
 int main() {
-    printf("In main loop\n");
+    // launch the instrument threads
+    std::thread(tam_thread).detach();
+    std::thread(imu_thread).detach();
+    std::thread(camera_thread).detach();
+    std::thread(housekeeping_thread).detach();
 
-    // initialize devices
-    Gps gps(1, "/dev/ttyAMA0", 9600);
-    printf("gps connected\n");
-    imu(sPacket);
-    printf("imu initialized\n");
-    tam(sPacket);
-    printf("tam initialized\n");
+    // the main process gathers and sends GPS packets
+    TimePacket* tPacket = nullptr;
+    Gps* gps = nullptr;
 
-    // start threads
-    if (piThreadCreate(cameraControl) != 0) {
-        perror("Camera control thread didn't start");
-    }
-    if (piThreadCreate(cmdThread) != 0) {
-        perror("Camera control thread didn't start");
-    }
-
-    // set high priority for this thread
-    pid_t pid = getpid();
-    std::stringstream cmd;
-    cmd << "renice -n -2 -p " << pid;
-    if (pid > 0) system(cmd.str().c_str());
-
-    // initialize the TAM with the higher priority
-    if (piThreadCreate(tamControl) != 0) {
-        perror("TAM control thread didn't start");
-    }
-
-    usleep(1000000);
-
-    // these values help time the packets
-    long timer = 0, difference = 0;
-    struct timeval start, next;
+    // try opening the GPS every ten seconds until it succeeds
     while (true) {
-
-        // get timestamps and send time packet
-        tPacket = new TimePacket();
-        while (!gps.dataAvail()) usleep(100);
-        gps.timestampPPS(tPacket->sysTimeSeconds, tPacket->sysTimeuSeconds);
-        start.tv_sec = tPacket->sysTimeSeconds;
-        start.tv_usec = tPacket->sysTimeuSeconds;
-        tPacket->gpsTime = gps.getTime();
-        //printf("pushing time packet\n");
-        queue.push_tlm(tPacket);
-        printf("queue contains %d packets\n", queue.tlmSize());
-        difference = 0;
-        timer = 0;
-        // every second, do this 50 times
-        for (int j=0; j<50; j++) {
-
-            do { // delay a bit (20ms per packet)
-                gettimeofday(&next, nullptr);
-                difference = next.tv_usec - start.tv_usec + (next.tv_sec - start.tv_sec) * 1000000;
-                //printf("difference is %li/%li\n", difference, timer);
-                if (difference < timer) usleep(100);
-            } while (difference < timer);
-            if (difference > 982000) break;
-            //printf("started cycle at %li/%li\n", difference, timer);
-
-            sPacket = new SensorPacket();
-            { // tell the TAM to collect data
-                std::lock_guard<std::mutex> lk(tam_m);
-                tamStart = true;
-                systemTimestamp(sPacket->sysTimeSeconds, sPacket->sysTimeuSeconds);
-            } tam_cv.notify_one();
-            imu(sPacket); // get IMU data
-            { // wait for TAM to finish
-                std::unique_lock<std::mutex> lk(tam_m);
-                tam_cv.wait(lk, []{return !tamStart;});
-            }
-            //printf("pushing imu packet #%d to the queue\n", j);
-            queue.push_tlm(sPacket);
-
-            timer += 20000;
+        try {
+            gps = new Gps(1, "dev/ttyAMA0", 9600);
+            printf("Successfully connected to the GPS\n");
+            break;
+        } catch (int e) {
+            printf("FAILED to connect to the GPS. Trying again in 10 seconds...\n");
+            sleep(10);
         }
     }
+
+    //TODO: add robust error handling here
+    while (true) {
+        tPacket = new TimePacket;
+
+        //TODO: does this work well?
+        while(!gps->dataAvail()) usleep(1000);
+        gps->timestampPPS(tPacket->systemTime);
+        tPacket->gpsTime = gps->getTime();
+
+        queue.push_tlm(tPacket);
+    }
+
     return 0;
 }
 
-void imu(SensorPacket* p) {
-    static Imu imuSensor;
-    if (p == nullptr) return;
-    imuSensor.getdata(p->imuData);
-    imuSensor.getQuaternion(p->imuQuat);
-}
-
-void tam(SensorPacket* p) {
-    static Tam tamSensor;
-    if (p == nullptr) return;
-    p->tamA = tamSensor.getData(0);
-    p->tamB = tamSensor.getData(1);
-    p->tamC = tamSensor.getData(2);
-}
-
-/*
-void camera(CameraPacket* p) {
-    static Camera cam;
-    if (p == nullptr) return;
-    cam.getFrame(p->pBuffer);
-}
-*/
-
-void systemTimestamp(uint32_t &stime, uint32_t &ustime) {
-    static struct timeval timeVal;
-    gettimeofday(&timeVal, nullptr);
-    stime =  timeVal.tv_sec;
-    ustime = timeVal.tv_usec;
+// return the system time in microseconds since unix epoch
+uint64_t getTimestamp() {
+    return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 }

@@ -1,6 +1,3 @@
-/////////////////////////////////////////
-//Implementation file for the IMU class//
-/////////////////////////////////////////
 #include "imu.h"
 #include <termios.h> // terminal io (serial port) interface
 #include <fcntl.h>   // File control definitions
@@ -135,15 +132,12 @@ Imu::Imu(){
     dev=&a;
         dev=scandev();
         if(strcmp(dev,"")!=0){
-            printf("Attempting to open port... ");
             comPort = OpenComPort(dev);
         }
         else{
-            printf("Failed to find attached device.\n");
-            return;
+            throw 1;
         }
-    if(comPort > 0)  
-    printf("IMU connected.\n");
+    if(comPort < 0) throw 1;
 }
 
 //////////////////////////////////////////////////////////////////////
