@@ -114,8 +114,7 @@ class EncoderPacket: public Packet {
     public:
         EncoderPacket();
         void convert();
-        uint32_t sysTimeSeconds;
-        uint32_t sysTimeuSeconds;
+        uint64_t timestamp;
         int32_t raw_cnt;
 };
 

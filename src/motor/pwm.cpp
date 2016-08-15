@@ -6,6 +6,9 @@
 
 PWM::PWM(int address=0x40) {
     pwm = wiringPiI2CSetup (address);
+    if (pwm < 0) {
+        throw 1;
+    }
     wiringPiI2CWriteReg8(pwm, MODE2, OUTDRV);
     wiringPiI2CWriteReg8(pwm, MODE1, ALLCALL);
     usleep(5000); // wait for oscillator

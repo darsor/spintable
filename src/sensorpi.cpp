@@ -14,9 +14,10 @@
 // this queue automatically opens a port for COSMOS.
 // any packets pushed to the tlm_queue will be sent to COSMOS.
 // any received packets will be found on the cmd_queue.
+// it is global so that all threads can access it
 CosmosQueue queue(4810, 20000, 8);
 
-// function prototype for getTimeStamp() (defined at the bottom), which
+// function prototype for getTimestamp() (defined at the bottom), which
 // returns the time in microseconds since unix epoch
 uint64_t getTimestamp();
 
@@ -188,6 +189,7 @@ void housekeeping_thread() {
     loadfile.close();
 }
 
+// main opens the GPS and sends time packets
 int main() {
     // launch the instrument threads
     std::thread(tam_thread).detach();

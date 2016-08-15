@@ -28,6 +28,7 @@ class DCMotor {
         double getSpeed(); // return speed in degrees/sec
         double getPosition(); // return position in degrees from home
         int32_t getCnt();
+        int32_t updateCnt();
 
         void stopPID();
         void pidPosition(double setPosition);
@@ -43,8 +44,8 @@ class DCMotor {
         double setSpd;
         std::atomic<bool> runningPID;
 
-        const unsigned int CNT_PER_INDEX = 500;
-        const unsigned int CNT_PER_REV = 2400;
+        const unsigned int CNT_PER_INDEX = 2000;
+        const unsigned int CNT_PER_REV = 9600;
         const double DEG_PER_CNT = 360.0/CNT_PER_REV;
 
         int indexPin;
@@ -61,6 +62,8 @@ class DCMotor {
         int pwmSpeedOld;
         double degSpeed;
         double degPosition;
+
+        int32_t currentCnt;
 };
 
 #endif

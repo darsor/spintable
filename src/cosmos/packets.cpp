@@ -82,11 +82,10 @@ EncoderPacket::EncoderPacket(): Packet(ENC_PKT_SIZE, ENC_PKT_ID) {}
 
 void EncoderPacket::convert() {
     if (!buffer) buffer = new unsigned char[length];
-    memcpy(buffer+ 0, &length,          4);
-    memcpy(buffer+ 4, &id,              1);
-    memcpy(buffer+ 5, &sysTimeSeconds,  4);
-    memcpy(buffer+ 9, &sysTimeuSeconds, 4);
-    memcpy(buffer+13, &raw_cnt,         4);
+    memcpy(buffer+ 0, &length   , 4);
+    memcpy(buffer+ 4, &id       , 1);
+    memcpy(buffer+ 5, &timestamp, 8);
+    memcpy(buffer+13, &raw_cnt  , 4);
 };
 
 HKPacket::HKPacket() : Packet(HK_PKT_SIZE, HK_PKT_ID) {}
