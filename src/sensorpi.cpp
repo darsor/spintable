@@ -20,7 +20,6 @@ CosmosQueue queue(4810, 20000, 8);
 // returns the time in microseconds since unix epoch
 uint64_t getTimestamp();
 
-//TODO: redefine packet ID's
 // this thread creates and sends TamPackets
 void tam_thread() {
     TamPacket* tPacket = nullptr;
@@ -39,7 +38,6 @@ void tam_thread() {
     }
 
     // repeatedly create and send packets
-    //TODO: add robust error checking here
     while(true) {
         tPacket = new TamPacket;
 
@@ -59,28 +57,37 @@ void imu_thread() {
     ImuPacket* iPacket = nullptr;
     Imu* imu = nullptr;
 
-    // try opening the IMU every ten seconds until it succeeds
     while (true) {
-        try {
-            imu = new Imu();
-            printf("Successfully connected to the IMU\n");
-            break;
-        } catch (int e) {
-            printf("FAILED to connect to the IMU. Trying again in 10 seconds...\n");
-            sleep(10);
+        // try opening the IMU every ten seconds until it succeeds
+        while (true) {
+            try {
+                imu = new Imu();
+                printf("Successfully connected to the IMU\n");
+                sleep(2);
+                break;
+            } catch (int e) {
+                printf("FAILED to connect to the IMU. Trying again in 10 seconds...\n");
+                sleep(10);
+            }
         }
-    }
 
-    //TODO: add robust error checking here
-    while (true) {
-        iPacket = new ImuPacket;
+        try {
+            while (true) {
+                iPacket = new ImuPacket;
 
-        iPacket->dataTimestamp = getTimestamp();
-        imu->getdata(iPacket->imuData);
-        iPacket->quatTimestamp = getTimestamp();
-        imu->getQuaternion(iPacket->imuQuat);
+                iPacket->dataTimestamp = getTimestamp();
+                imu->getdata(iPacket->imuData);
+                iPacket->quatTimestamp = getTimestamp();
+                imu->getQuaternion(iPacket->imuQuat);
 
-        queue.push_tlm(iPacket);
+                queue.push_tlm(iPacket);
+            }
+        } catch (int e) {
+            printf("lost connection with the IMU\n");
+            if (iPacket) delete iPacket;
+            delete imu;
+            continue;
+        }
     }
 }
 
@@ -97,31 +104,41 @@ void camera_thread() {
     camera.setVerticalFlip(true);
     camera.setShutterSpeed(1000);
 
-    //TODO: add robust error checking here
     while (true) {
+        // check if there is a command to turn the camera on/off
         if (queue.cmdSize() > 0 && queue.cmd_front_id() == CAM_CMD_ID) {
             queue.pop_cmd(cmdPacket);
             CameraPowerCmd* cCmd = static_cast<CameraPowerCmd*>(cmdPacket);
             cCmd->CameraPowerCmd::convert();
+            // turn it on
             if (cCmd->state && !camera.isOpened()) {
                 while (!camera.open()) {
-                    printf("FAILED to connect to the camera. Trying again in 10 seconds...\n");
+                    printf("FAILED to connect to the camera. Trying again in 5 seconds...\n");
                     camera.release();
-                    sleep(10);
+                    sleep(5);
+                    if (queue.cmdSize() > 0 && queue.cmd_front_id() == CAM_CMD_ID) continue;
                 }
                 printf("Successfully connected to the camera\n");
+                sleep(2);
+            // or turn it off
             } else if (!cCmd->state) {
                 camera.release();
                 printf("Disconnected from the camera\n");
             }
         }
-        cPacket = new CameraPacket;
 
-        camera.grab();
-        cPacket->timestamp = getTimestamp();
-        camera.retrieve(cPacket->pBuffer);
+        // get and send the packet
+        if (camera.isOpened()) {
+            cPacket = new CameraPacket;
 
-        queue.push_tlm(cPacket);
+            camera.grab();
+            cPacket->timestamp = getTimestamp();
+            camera.retrieve(cPacket->pBuffer);
+
+            queue.push_tlm(cPacket);
+        } else {
+            sleep(1);
+        }
     }
 }
 
@@ -182,28 +199,36 @@ int main() {
     TimePacket* tPacket = nullptr;
     Gps* gps = nullptr;
 
-    // try opening the GPS every ten seconds until it succeeds
     while (true) {
-        try {
-            gps = new Gps(1, "dev/ttyAMA0", 9600);
-            printf("Successfully connected to the GPS\n");
-            break;
-        } catch (int e) {
-            printf("FAILED to connect to the GPS. Trying again in 10 seconds...\n");
-            sleep(10);
+        // try opening the GPS every ten seconds until it succeeds
+        while (true) {
+            try {
+                gps = new Gps(1, "/dev/ttyAMA0", 9600);
+                printf("Successfully connected to the GPS\n");
+                break;
+            } catch (int e) {
+                printf("FAILED to connect to the GPS. Trying again in 10 seconds...\n");
+                sleep(10);
+            }
         }
-    }
 
-    //TODO: add robust error handling here
-    while (true) {
-        tPacket = new TimePacket;
+        // make sure data is available before we get the PPS (avoids blocking on the gps->getTime() call)
+        while(!gps->dataAvail()) usleep(10000);
+        try {
+            while (true) {
+                tPacket = new TimePacket;
 
-        //TODO: does this work well?
-        while(!gps->dataAvail()) usleep(1000);
-        gps->timestampPPS(tPacket->systemTime);
-        tPacket->gpsTime = gps->getTime();
+                gps->timestampPPS(tPacket->systemTime);
+                tPacket->gpsTime = gps->getTime();
 
-        queue.push_tlm(tPacket);
+                queue.push_tlm(tPacket);
+            }
+        } catch (int e) {
+            printf("lost connection with GPS\n");
+            if (tPacket) delete tPacket;
+            delete gps;
+            continue;
+        }
     }
 
     return 0;

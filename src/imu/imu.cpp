@@ -23,8 +23,7 @@ int Purge(ComPortHandle comPortHandle){
 ComPortHandle OpenComPort(const char* comPortPath){
     ComPortHandle comPort = open(comPortPath, O_RDWR | O_NOCTTY);
     if (comPort== -1){ //Opening of port failed
-        printf("Unable to open com Port %s\n Errno = %i\n", comPortPath, errno);
-        return -1;
+        throw 1;
     }
     //Get the current options for the port...
     struct termios options;
@@ -75,7 +74,7 @@ int Imu::readComPort(unsigned char* bytes, int size){
     while (bytesRead<size) {
         temp = read(comPort, &bytes[bytesRead], size - bytesRead);
         bytesRead += temp;
-        if (bytesRead < size && temp == 0) return 0;
+        if (bytesRead < size && temp == 0) throw 1;
     }
     return bytesRead;     
 }
@@ -83,7 +82,9 @@ int Imu::readComPort(unsigned char* bytes, int size){
 // writeComPort
 // send bytes to the com port
 int Imu::writeComPort(unsigned char* bytes, int size){
-    return write(comPort, bytes, size);
+    int temp = write(comPort, bytes, size);
+    if (temp <= 0) throw 1;
+    else return temp;
 }
 
 //scandev
@@ -99,6 +100,7 @@ char* scandev(){
     instream=popen(command, "r"); // execute piped command in read mode
     if(!instream){//SOMETHING WRONG WITH THE SYSTEM COMMAND PIPE...EXITING
         printf("ERROR BROKEN PIPELINE %s\n", command);
+        throw 1;
         return device;
     }
     for(int i=0;i<255&&(fgets(devnames[i],sizeof(devnames[i]), instream));i++){//load char array of device addresses
@@ -118,7 +120,7 @@ char* scandev(){
         return device;
     }
     else{
-        printf("No MicroStrain devices found.\n");
+        throw 1;
         return device;
     }
 }

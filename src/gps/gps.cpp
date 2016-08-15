@@ -51,21 +51,27 @@ Gps::~Gps() {
 void Gps::timestampPPS(uint64_t &systemTime) {
     pps = false;
     std::unique_lock<std::mutex> lk(isr_mutex);
-    cond_var.wait(lk, []{return pps;});
+    if (!cond_var.wait_for(lk, std::chrono::seconds(2) ,[]{return pps;})) {
+        systemTime = 0;
+        return;
+    }
     pps = false;
-    lk.unlock();
     systemTime = timestamp;
 }
 
 float Gps::getTime() {
     float ftime;
     char type[6];
+    char tmp;
     type[5] = '\0';
     bool match = false;
     // loop until all data is read
     do {
         // jump to beginning of sentence ($)
-        while ( ((char) serialGetchar(fd)) != '$');
+        do { 
+            tmp = (char) serialGetchar(fd);
+            if (tmp == 255) throw 1;
+        } while (tmp != '$');
         // make sure it's a GPGGA sentence
         for (int i=0; i<5; i++) {
             type[i]=serialGetchar(fd);

@@ -35,7 +35,6 @@ gcc linux_3DM-GX3-25_sample_driver.c -o BINFILENAME
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
-#include <iostream>
 
 #define TRUE 1
 #define FALSE 0
@@ -166,8 +165,8 @@ int CommandDialog(ComPortHandle comPort){
 
   int commandLen;
   Byte input[50] = {0};
+  int i = 0;
   unsigned char command[25];
-  int i=0;
   int size;
   Byte response[4096] = {0};
 
@@ -192,14 +191,14 @@ int CommandDialog(ComPortHandle comPort){
 
 //Example multibyte command.  This can be written to the IMU using a for loop.
 //For more examples of Multibyte commands, see "3DM-GX3-25 Single Byte Data Communications Protocol."
-/*command[0]=0xdb;
+command[0]=0xdb;
   command[1]=0xa8;
   command[2]=0xb9;
   command[3]=0x02;
   command[4]=0x00;
   command[5]=0x0a;
   command[6]=0x14;
-  command[7]=0x03;
+  command[7]=0x13;
   command[8]=0x0f;
   command[9]=0x10;
   command[10]=0x00;
@@ -212,7 +211,6 @@ int CommandDialog(ComPortHandle comPort){
   command[17]=0x00;
   command[18]=0x00;
   command[19]=0x00;
-*/
 
   //Example of a single byte command.
   //command[0]=0xdf;
@@ -225,8 +223,8 @@ int CommandDialog(ComPortHandle comPort){
     //writeComPort(comPort, &command[0], commandLen/2);//write command to port
 
     //Uncomment this for loop if you want to send a multibyte command.
-    //for(int i=0; i<20; i++)
-    //    writeComPort(comPort, &command[i], 1);//write command to port
+    for(i=0; i<20; i++)
+        writeComPort(comPort, &command[i], 1);//write command to port
 
 //Uncomment the following line if you are asking for user input from the keyboard.
 //getchar();//flush keyboard buffer
@@ -246,6 +244,7 @@ int CommandDialog(ComPortHandle comPort){
        printf("BAD READ\n");
        return TRUE;
       } else{
+        i = 0;
         for(i=0;i<size;i++){
   
           if(response[i]<0x10){//keeps output bytes listed as two char hex format

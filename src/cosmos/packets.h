@@ -2,32 +2,32 @@
 #define PACKETS_H
 
 #define TIME_PKT_ID             0x00
-#define TIME_PKT_SIZE           18
+#define TIME_PKT_SIZE           17
 
 #define TAM_PKT_ID              0x10
-#define TAM_PKT_SIZE            36
+#define TAM_PKT_SIZE            35
 
 #define IMU_PKT_ID              0x20
-#define IMU_PKT_SIZE            88
+#define IMU_PKT_SIZE            87
 
 #define CAM_PKT_ID              0x30
-#define CAM_PKT_SIZE            76814
+#define CAM_PKT_SIZE            76813
 #define CAM_CMD_ID              0x31
-#define CAM_CMD_SIZE            8
+#define CAM_CMD_SIZE            7
 
 #define ENC_PKT_ID              0x40
-#define ENC_PKT_SIZE            18
+#define ENC_PKT_SIZE            17
 
 #define MOTOR_SET_HOME_ID       0x41
-#define MOTOR_SET_HOME_SIZE     6
+#define MOTOR_SET_HOME_SIZE     5
 #define MOTOR_SET_SPEED_ID      0x42
-#define MOTOR_SET_SPEED_SIZE    8
+#define MOTOR_SET_SPEED_SIZE    7
 #define MOTOR_ABS_POS_ID        0x43
-#define MOTOR_ABS_POS_SIZE      10
+#define MOTOR_ABS_POS_SIZE      9
 #define MOTOR_REV_POS_ID        0x44
-#define MOTOR_REV_POS_SIZE      10
+#define MOTOR_REV_POS_SIZE      9
 #define MOTOR_GOTO_INDEX_ID     0x45
-#define MOTOR_GOTO_INDEX_SIZE   6
+#define MOTOR_GOTO_INDEX_SIZE   5
 
 #define HK_PKT_ID               0xFF
 #define HK_PKT_SIZE             27
@@ -36,13 +36,13 @@
 
 class Packet {
     public:
-        Packet(const uint32_t length, const uint16_t id, bool cmd = false);
+        Packet(const uint32_t length, const uint8_t id, bool cmd = false);
         Packet(const Packet& that);
         Packet& operator=(const Packet& that);
         virtual ~Packet();
         virtual void convert();
         uint32_t length;
-        uint16_t id;
+        uint8_t id;
         unsigned char* buffer;
 };
 

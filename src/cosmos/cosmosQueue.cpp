@@ -47,7 +47,10 @@ void CosmosQueue::deleteFrontCmd() {
 }
 
 void CosmosQueue::push_tlm(Packet* item) {
-    if (tlmCapacity == 0) return;
+    if (tlmCapacity == 0) {
+        delete item;
+        return;
+    }
     tlm_mutex.lock();
     if (tlmQueue.size() >= tlmCapacity) {
         //printf("deleting packet from full queue\n");
@@ -143,7 +146,7 @@ void CosmosQueue::tlm_thread() {
 void CosmosQueue::cmd_thread() {
     unsigned char buffer[128];
     uint32_t length;
-    uint16_t id;
+    uint8_t id;
     Packet* cmd;
     while (true) {
         connection_mutex.lock();
@@ -157,7 +160,7 @@ void CosmosQueue::cmd_thread() {
             } else {
                 memcpy(&length, buffer, sizeof(length));
                 printf("received packet of length %u\n", length);
-                if (length < 6) {
+                if (length < 5 || length > 100) {
                     connected.store(false);
                     break;
                 }
