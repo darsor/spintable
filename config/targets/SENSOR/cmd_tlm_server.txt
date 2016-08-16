@@ -1,0 +1,6 @@
+#INTERFACE  NAME            INTERFACE FILE              HOST                                    WRITE   READ    W TIMEOUT   R TIMEOUT   STREAM  ARGUMENTS
+#--------------------------------------------------------------------------------------------------------------------------------------------------------
+#INTERFACE   SENSOR_TCPIP    tcpip_client_interface.rb   spintable2.bluezone.usu.edu  			4810    4810    10.0         10.0       LENGTH  0 32 0 1
+INTERFACE   SENSOR_TCPIP    tcpip_client_interface.rb   spintable-sensor-wifi.bluezone.usu.edu  4810    4810    10.0         10.0       LENGTH  0 32 0 1 LITTLE_ENDIAN
+	TARGET SENSOR
+	DONT_CONNECT
