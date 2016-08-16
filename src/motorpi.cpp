@@ -12,19 +12,20 @@
 // any packets pushed to the tlm_queue will be sent to COSMOS.
 // any received packets will be found on the cmd_queue.
 // it is global so that all threads can access it
-//TODO: calculate max size of queue
-CosmosQueue queue(4810, 120000, 8);
+CosmosQueue queue(4810, 600000, 8);
+
+// the motor is global because the encoder is accessed through it.
+// one process handles mtor commands, another reads the encoder
+DCMotor* motor = nullptr;
 
 // function prototype for getTimestamp() (defined at the bottom), which
 // returns the time in microseconds since unix epoch
 uint64_t getTimestamp();
 
 // this thread connects to the motor/encoder and puts together an
-// encoder packet that it queues every second.
-// it also takes commands for the motor
-void motor_thread() {
+// encoder packet containing 100 samples
+void encoder_thread() {
     EncoderPacket* ePacket = nullptr;
-    DCMotor* motor = nullptr;
 
     while (true) {
         // try opening the motor every 10 seconds until it succeeds
@@ -35,6 +36,7 @@ void motor_thread() {
                 sleep(1);
                 break;
             } catch (int e) {
+                motor = nullptr;
                 printf("FAILED to connect to motor or quadrature decoder. Trying again in 10 seconds...\n");
                 sleep(10);
             }
@@ -44,73 +46,86 @@ void motor_thread() {
             while (true) {
                 ePacket = new EncoderPacket;
 
-                ePacket->timestamp = getTimestamp();
-                ePacket->raw_cnt = motor->updateCnt();
+                for (int i=0; i<100; ++i) {
+                    ePacket->timestamps[i] = getTimestamp();
+                    ePacket->raw_cnts[i] = motor->updateCnt();
+                }
 
                 queue.push_tlm(ePacket);
-
-                if (queue.cmdSize() > 0) {
-                    uint8_t id = queue.cmd_front_id();
-                    double position = 0;
-                    Packet* cmdPacket = nullptr;
-                    switch (id) {
-                        case MOTOR_SET_HOME_ID:
-                            queue.pop_cmd(cmdPacket);
-                            printf("received command to set encoder home\n");
-                            motor->setHome();
-                            break;
-                        case MOTOR_SET_SPEED_ID:
-                            {
-                                queue.pop_cmd(cmdPacket);
-                                SetSpeedCmd* speedCmd = static_cast<SetSpeedCmd*>(cmdPacket);
-                                speedCmd->SetSpeedCmd::convert();
-                                printf("received command to change speed to %d\n", speedCmd->speed);
-                                motor->setGradSpeed(speedCmd->speed);
-                            }
-                            break;
-                        case MOTOR_ABS_POS_ID:
-                            {
-                                queue.pop_cmd(cmdPacket);
-                                SetAbsPosCmd* absCmd = static_cast<SetAbsPosCmd*>(cmdPacket);
-                                absCmd->SetAbsPosCmd::convert();
-                                printf("received command to change absolute position to %f\n", absCmd->position);
-                                motor->pidPosition(absCmd->position);
-                            }
-                            break;
-                        case MOTOR_REV_POS_ID:
-                            {
-                                queue.pop_cmd(cmdPacket);
-                                SetRevPosCmd* revCmd = static_cast<SetRevPosCmd*>(cmdPacket);
-                                revCmd->SetRevPosCmd::convert();
-                                printf("received command to change relative position by %f\n", revCmd->position);
-                                if (motor->pidIsOn()) position = motor->getPidPos();
-                                else position = motor->getPosition();
-                                position += revCmd->position;
-                                if (position < 360) position += 360;
-                                if (position > 360) position -= 360;
-                                motor->pidPosition(position);
-                            }
-                            break;
-                        case MOTOR_GOTO_INDEX_ID:
-                            queue.pop_cmd(cmdPacket);
-                            printf("received command to gotoIndex\n");
-                            motor->gotoIndex();
-                            break;
-                        default:
-                            printf("unknown command received with id=%d\n", id);
-                    }
-                    if (cmdPacket) delete cmdPacket;
-                }
-                if (!queue.isConnected()) {
-                    motor->stopPID();
-                    motor->setSpeed(0);
-                }
             }
         } catch (int e) {
             printf("lost connection with motor and quadrature decoder\n");
             if (ePacket) delete ePacket;
             delete motor;
+            motor = nullptr;
             continue;
+        }
+    }
+}
+
+// this thread handles commands to the motor
+void motor_thread() {
+    Packet* cmdPacket = nullptr;
+    uint8_t id;
+    double position = 0;
+    while (true) {
+        if (queue.cmdSize() > 0 && motor) {
+            id = queue.cmd_front_id();
+            position = 0;
+            cmdPacket = nullptr;
+            switch (id) {
+                case MOTOR_SET_HOME_ID:
+                    queue.pop_cmd(cmdPacket);
+                    printf("received command to set encoder home\n");
+                    motor->setHome();
+                    break;
+                case MOTOR_SET_SPEED_ID:
+                    {
+                        queue.pop_cmd(cmdPacket);
+                        SetSpeedCmd* speedCmd = static_cast<SetSpeedCmd*>(cmdPacket);
+                        speedCmd->SetSpeedCmd::convert();
+                        printf("received command to change speed to %d\n", speedCmd->speed);
+                        motor->setGradSpeed(speedCmd->speed);
+                    }
+                    break;
+                case MOTOR_ABS_POS_ID:
+                    {
+                        queue.pop_cmd(cmdPacket);
+                        SetAbsPosCmd* absCmd = static_cast<SetAbsPosCmd*>(cmdPacket);
+                        absCmd->SetAbsPosCmd::convert();
+                        printf("received command to change absolute position to %f\n", absCmd->position);
+                        motor->pidPosition(absCmd->position);
+                    }
+                    break;
+                case MOTOR_REV_POS_ID:
+                    {
+                        queue.pop_cmd(cmdPacket);
+                        SetRevPosCmd* revCmd = static_cast<SetRevPosCmd*>(cmdPacket);
+                        revCmd->SetRevPosCmd::convert();
+                        printf("received command to change relative position by %f\n", revCmd->position);
+                        if (motor->pidIsOn()) position = motor->getPidPos();
+                        else position = motor->getPosition();
+                        position += revCmd->position;
+                        if (position < 360) position += 360;
+                        if (position > 360) position -= 360;
+                        motor->pidPosition(position);
+                    }
+                    break;
+                case MOTOR_GOTO_INDEX_ID:
+                    queue.pop_cmd(cmdPacket);
+                    printf("received command to gotoIndex\n");
+                    motor->gotoIndex();
+                    break;
+                default:
+                    printf("unknown command received with id=%d\n", id);
+            }
+            if (cmdPacket) delete cmdPacket;
+        } else {
+            usleep(200000);
+        }
+        if (!queue.isConnected() && motor) {
+            motor->stopPID();
+            motor->setSpeed(0);
         }
     }
 }
@@ -165,6 +180,7 @@ void housekeeping_thread() {
 int main() {
 
     // launch the instrument threads
+    std::thread(encoder_thread).detach();
     std::thread(motor_thread).detach();
     std::thread(housekeeping_thread).detach();
 
@@ -195,6 +211,7 @@ int main() {
                 tPacket->gpsTime = gps->getTime();
 
                 queue.push_tlm(tPacket);
+                printf("queue has %d items\n", queue.tlmSize());
             }
         } catch (int e) {
             printf("lost connection with GPS\n");

@@ -16,7 +16,7 @@
 #define CAM_CMD_SIZE            7
 
 #define ENC_PKT_ID              0x40
-#define ENC_PKT_SIZE            17
+#define ENC_PKT_SIZE            1205
 
 #define MOTOR_SET_HOME_ID       0x41
 #define MOTOR_SET_HOME_SIZE     5
@@ -113,9 +113,10 @@ class CameraPacket: public Packet {
 class EncoderPacket: public Packet {
     public:
         EncoderPacket();
+        ~EncoderPacket();
         void convert();
-        uint64_t timestamp;
-        int32_t raw_cnt;
+        uint64_t* timestamps;
+        int32_t* raw_cnts;
 };
 
 class HKPacket: public Packet {

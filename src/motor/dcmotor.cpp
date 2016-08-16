@@ -166,7 +166,7 @@ void DCMotor::gotoIndex() {
         inc /= -2.0;
         if (fabs(inc) < 0.01) break;
     }
-    printf("gotoIndex stopping at %f\n", setPos);
+    //printf("gotoIndex stopping at %f\n", setPos);
 }
 
 // TODO: currently broken, needs to store times/ticks with packet cycle
@@ -236,7 +236,7 @@ void DCMotor::posPID() {
         output = pid.getOutput();
         setSpeed((int) output);
         //setSpeed((int) pid.getOutput());
-        printf("    setPoint: %-.4f, proccessValue: %-.4f, output: %-.4f\n", setPos, getPosition(), output);
+        //printf("    setPoint: %-.4f, proccessValue: %-.4f, output: %-.4f\n", setPos, getPosition(), output);
         usleep(500);
     }
 }

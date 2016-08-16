@@ -154,19 +154,21 @@ void CosmosQueue::cmd_thread() {
         connection_mutex.unlock();
         while (connected.load()) {
             // receive the first four bytes (the length of the packet);
-            if (cosmos.recvPacket(buffer, 4) < 0) {
+            if (cosmos.recvPacket(buffer, 4) < 4) {
+                printf("unable to get 4 bytes\n");
                 connected.store(false);
                 break;
             } else {
                 memcpy(&length, buffer, sizeof(length));
                 printf("received packet of length %u\n", length);
                 if (length < 5 || length > 100) {
+                    printf("packet is too small. Disconnecting...\n");
                     connected.store(false);
                     break;
                 }
                 // receive the rest of the packet
                 if (cosmos.recvPacket(buffer+4, length-4) < (int)(length-4)) {
-                    printf("failed to fetch entire packet\n");
+                    printf("failed to fetch entire packet. Disconnecting...\n");
                     connected.store(false);
                     break;
                 }
