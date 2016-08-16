@@ -1,0 +1,5 @@
+#INTERFACE  NAME            INTERFACE FILE              HOST                                    WRITE   READ    W TIMEOUT   R TIMEOUT   STREAM  ARGUMENTS
+#--------------------------------------------------------------------------------------------------------------------------------------------------------
+INTERFACE   MOTOR_TCPIP    tcpip_client_interface.rb   spintable1.bluezone.usu.edu    			4810    4810    10.0         10.0       LENGTH  0 32 0 1 LITTLE_ENDIAN
+    TARGET MOTOR
+	DONT_CONNECT

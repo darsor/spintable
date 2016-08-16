@@ -1,3 +1,14 @@
-build
-spintable_rev2
+# build files
+/build
+*.o
 *.out
+
+# COSMOS files
+/lib
+/outputs
+/procedures
+/tools
+/Gem*
+/Launch*
+/Rakefile
+/userpath.txt

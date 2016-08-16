@@ -1,0 +1,45 @@
+TELEMETRY SENSOR TIME LITTLE_ENDIAN "gps time and system time"
+    APPEND_ITEM LEN         32 UINT "length of packet in bytes"
+    APPEND_ID_ITEM PKTID     8 UINT 0x00 "packet id which must be 0x00"
+    APPEND_ITEM GPSTIME     32 FLOAT "GPS time formatted as hhmmss.sss"
+		FORMAT_STRING "%010.3f"
+	APPEND_ITEM SYSTIME		64 UINT	"System time in seconds since epoch"
+		READ_CONVERSION systime.rb
+		FORMAT_STRING "%.6f"
+
+
+TELEMETRY MOTOR ENCODER LITTLE_ENDIAN "data from encoder with system timestamp"
+    APPEND_ITEM 	LEN 	32 UINT "length of packet in bytes"
+    APPEND_ID_ITEM 	PKTID 	 8 UINT 0x40 "packet id which must be 0x40"
+	
+	MACRO_APPEND_START 0 99 "%s_%d"
+		APPEND_ITEM    TIMESTAMP   64 UINT	"System time in seconds since epoch"
+			READ_CONVERSION systime.rb
+			FORMAT_STRING "%.6f"
+	MACRO_APPEND_END
+	MACRO_APPEND_START 0 99 "%s_%d"
+		APPEND_ITEM 	RAW_CNT 32 INT "Raw quadrature counts from encoder"
+	MACRO_APPEND_END
+	
+	ITEM 	SPEED 	0 0 DERIVED "Motor speed in degrees per second"
+		READ_CONVERSION motor_speed.rb
+        UNITS "Degrees per Second" "deg/s"
+		FORMAT_STRING "%.4f"
+    ITEM 	POSITION 0 0 DERIVED "Position in degrees from home"
+		READ_CONVERSION motor_position.rb
+		UNITS "degrees" "deg"
+    ITEM 	REV_CNT 0 0 DERIVED "Revolution count"
+		READ_CONVERSION motor_rev_cnt.rb
+
+	
+TELEMETRY SENSOR HOUSEKEEPING LITTLE_ENDIAN "housekeeping packet"
+	APPEND_ITEM		LENGTH		32	UINT	  "packet length"
+	APPEND_ID_ITEM	PKT_ID		 8	UINT 0xFF "packet ID which must be 0xFF"
+	APPEND_ITEM     TIMESTAMP   64	UINT      "housekeeping timestamp in seconds since epoch"
+		READ_CONVERSION systime.rb
+		FORMAT_STRING "%.6f"
+	APPEND_ITEM		QUEUE_SIZE	16	UINT	  "size of telemetry queue in memory"
+	APPEND_ITEM		CPU_TEMP	32	FLOAT	  "temperature of CPU in degrees celcius"
+		UNITS "degrees celcius" "C"
+	APPEND_ITEM		CPU_LOAD	32	FLOAT	  "CPU load 1 minute average"
+	APPEND_ITEM		MEM_USAGE	32	UINT	  "used memory in bytes"

@@ -1,0 +1,91 @@
+TELEMETRY SENSOR TIME LITTLE_ENDIAN "gps time and system time"
+    APPEND_ITEM LEN         32 UINT "length of packet in bytes"
+    APPEND_ID_ITEM PKTID     8 UINT 0x00 "packet id which must be 0x00"
+    APPEND_ITEM GPSTIME     32 FLOAT "GPS time formatted as hhmmss.sss"
+		FORMAT_STRING "%010.3f"
+	APPEND_ITEM SYSTIME		64 UINT	"System time in seconds since epoch"
+		READ_CONVERSION systime.rb
+		FORMAT_STRING "%.6f"
+
+
+TELEMETRY SENSOR TAM LITTLE_ENDIAN "telemetry from the TAM (Three Axis Magnetometer)"
+	APPEND_ITEM LEN         32 UINT "length of packet in bytes"
+    APPEND_ID_ITEM PKTID     8 UINT 0x10 "packet id which must be 0x10"
+	
+	APPEND_ITEM TIME_A		64 UINT "timestamp of TAM_A in seconds since epoch"
+		READ_CONVERSION systime.rb
+		FORMAT_STRING "%.6f"
+    APPEND_ITEM TAM_A       16 UINT "raw data from channel A of TAM, to convert to voltage multiply by (4.096 / 32768)"
+	
+	APPEND_ITEM TIME_B		64 UINT "timestamp of TAM_B in seconds since epoch"
+		READ_CONVERSION systime.rb
+		FORMAT_STRING "%.6f"
+    APPEND_ITEM TAM_B       16 UINT "raw data from channel B of TAM, to convert to voltage multiply by (4.096 / 32768)"
+	
+	APPEND_ITEM TIME_C		64 UINT "timestamp of TAM_C in seconds since epoch"
+		READ_CONVERSION systime.rb
+		FORMAT_STRING "%.6f"
+    APPEND_ITEM TAM_C       16 UINT "raw data from channel C of TAM, to convert to voltage multiply by (4.096 / 32768)"
+
+
+TELEMETRY SENSOR IMU LITTLE_ENDIAN "data from the IMU and TAM, with system timestamp"
+    APPEND_ITEM LEN         32 UINT "length of packet in bytes"
+    APPEND_ID_ITEM PKTID     8 UINT 0x20 "packet id which must be 0x20"
+
+	APPEND_ITEM DATA_TIMESTAMP 64 UINT "timestamp of all IMU data (minus quaternion) in seconds since epoch"
+		READ_CONVERSION systime.rb
+		FORMAT_STRING "%.6f"
+    APPEND_ITEM DATA_ECHO 8 BLOCK "Echo of command used to get data from IMU"
+    APPEND_ITEM ACCEL_X     32 FLOAT "Acceleration x of IMU in g's"
+        UNITS g-units g
+    APPEND_ITEM ACCEL_Y     32 FLOAT "Acceleration y of IMU in g's"
+        UNITS g-units g
+    APPEND_ITEM ACCEL_Z     32 FLOAT "Acceleration z of IMU in g's"
+        UNITS g-units g
+    APPEND_ITEM ANG_RATE_X  32 FLOAT "Angle rate x of IMU in radians/second"
+        UNITS radians/sec rad/s
+    APPEND_ITEM ANG_RATE_Y  32 FLOAT "Angle rate y of IMU in radians/second"
+        UNITS radians/sec rad/s
+    APPEND_ITEM ANG_RATE_Z  32 FLOAT "Angle rate z of IMU in radians/second"
+        UNITS radians/sec rad/s
+    APPEND_ITEM MAG_X       32 FLOAT "Magnetometer x of IMU in gauss"
+        UNITS Gauss G
+    APPEND_ITEM MAG_Y       32 FLOAT "Magnetometer y of IMU in gauss"
+        UNITS Gauss G
+    APPEND_ITEM MAG_Z       32 FLOAT "Magnetometer z of IMU in gauss"
+        UNITS Gauss G
+    APPEND_ITEM DATA_TIMER  32 UINT  "Time since IMU power-up, to convert to seconds divide by 62,500. Accuracy of +/- 0.01%"
+    APPEND_ITEM DATA_CHECKSUM 16 BLOCK "Checksum for IMU data: sum of all preceding IMU bytes with rollover from 65535 to 0"
+
+	APPEND_ITEM QUAT_TIMESTAMP 64 UINT "timestamp of all IMU quaternion data in seconds since epoch"
+		READ_CONVERSION systime.rb
+		FORMAT_STRING "%.6f"
+    APPEND_ITEM QUAT_ECHO   8  BLOCK "Echo of command used to get quaternion data from IMU"
+    APPEND_ITEM Q0          32 FLOAT "Quaternion 0 of IMU"
+    APPEND_ITEM Q1          32 FLOAT "Quaternion 1 of IMU"
+    APPEND_ITEM Q2          32 FLOAT "Quaternion 2 of IMU"
+    APPEND_ITEM Q3          32 FLOAT "Quaternion 3 of IMU"
+    APPEND_ITEM QUAT_TIMER  32 UINT  "Time since IMU power-up, to convert to seconds divide by 62,500. Accuracy of +/- 0.01%"
+    APPEND_ITEM QUAT_CHECKSUM 16 BLOCK "Checksum for IMU data"
+
+
+TELEMETRY SENSOR CAMERA LITTLE_ENDIAN "pixel buffer from camera, with system timestamp"
+	APPEND_ITEM		LENGTH		32		UINT	  "packet length"
+	APPEND_ID_ITEM	PKT_ID		 8		UINT 0x30 "packet ID which must be 0x30"
+	APPEND_ITEM		IMAGE	614400	    BLOCK	  "greyscale image 320x240, one byte per pixel"
+	APPEND_ITEM     TIMESTAMP   64      UINT      "timestamp of image in seconds since epoch"
+		READ_CONVERSION systime.rb
+		FORMAT_STRING "%.6f"
+
+
+TELEMETRY SENSOR HOUSEKEEPING LITTLE_ENDIAN "housekeeping packet"
+	APPEND_ITEM		LENGTH		32	UINT	  "packet length"
+	APPEND_ID_ITEM	PKT_ID		 8	UINT 0xFF "packet ID which must be 0xFF"
+	APPEND_ITEM     TIMESTAMP   64	UINT      "housekeeping timestamp in seconds since epoch"
+		READ_CONVERSION systime.rb
+		FORMAT_STRING "%.6f"
+	APPEND_ITEM		QUEUE_SIZE	16	UINT	  "size of telemetry queue in memory"
+	APPEND_ITEM		CPU_TEMP	32	FLOAT	  "temperature of CPU in degrees celcius"
+		UNITS "degrees celcius" "C"
+	APPEND_ITEM		CPU_LOAD	32	FLOAT	  "CPU load 1 minute average"
+	APPEND_ITEM		MEM_USAGE	32	UINT	  "used memory in bytes"

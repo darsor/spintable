@@ -1,0 +1,7 @@
+REQUIRE round_to.rb
+REQUIRE systime.rb
+REQUIRE motor_speed.rb
+REQUIRE motor_position.rb
+REQUIRE motor_rev_cnt.rb
+IGNORE_PARAMETER LENGTH
+IGNORE_PARAMETER CMD_ID
