@@ -15,7 +15,6 @@ class DCMotor {
     public:
         DCMotor(int channel=2, int addr=0x60, int freq=1600);
         ~DCMotor();
-                        // TODO: mutex functions
 
         void run(int command);
         void setSpeed(int speed);

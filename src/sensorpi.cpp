@@ -117,8 +117,9 @@ void camera_thread() {
                     printf("FAILED to connect to the camera. Trying again in 5 seconds...\n");
                     camera.release();
                     sleep(5);
-                    if (queue.cmdSize() > 0 && queue.cmd_front_id() == CAM_CMD_ID) continue;
+                    if (queue.cmdSize() > 0 && queue.cmd_front_id() == CAM_CMD_ID) break;
                 }
+                if (queue.cmdSize() > 0 && queue.cmd_front_id() == CAM_CMD_ID) continue;
                 printf("Successfully connected to the camera\n");
                 sleep(2);
             // or turn it off
@@ -224,6 +225,7 @@ int main() {
                 tPacket->gpsTime = gps->getTime();
 
                 queue.push_tlm(tPacket);
+                printf("queue has %d items\n", queue.tlmSize());
             }
         } catch (int e) {
             printf("lost connection with GPS\n");
