@@ -72,10 +72,10 @@ TELEMETRY SENSOR IMU LITTLE_ENDIAN "data from the IMU and TAM, with system times
 TELEMETRY SENSOR CAMERA LITTLE_ENDIAN "pixel buffer from camera, with system timestamp"
 	APPEND_ITEM		LENGTH		32		UINT	  "packet length"
 	APPEND_ID_ITEM	PKT_ID		 8		UINT 0x30 "packet ID which must be 0x30"
-	APPEND_ITEM		IMAGE	614400	    BLOCK	  "greyscale image 320x240, one byte per pixel"
 	APPEND_ITEM     TIMESTAMP   64      UINT      "timestamp of image in seconds since epoch"
 		READ_CONVERSION systime.rb
 		FORMAT_STRING "%.6f"
+	APPEND_ITEM		IMAGE	614400	    BLOCK	  "greyscale image 320x240, one byte per pixel"
 
 
 TELEMETRY SENSOR HOUSEKEEPING LITTLE_ENDIAN "housekeeping packet"
