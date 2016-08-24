@@ -225,7 +225,6 @@ int main() {
                 tPacket->gpsTime = gps->getTime();
 
                 queue.push_tlm(tPacket);
-                printf("queue has %d items\n", queue.tlmSize());
             }
         } catch (int e) {
             printf("lost connection with GPS\n");

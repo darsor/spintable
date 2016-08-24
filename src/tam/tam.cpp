@@ -5,7 +5,7 @@
 Tam::Tam(int pinBase, int addr): pinBase(pinBase), addr(addr) {
     try {
         ads1115Setup(pinBase, addr);
-        wiringPiSetup();
+        //wiringPiSetup();
     } catch (...) {}
 }
 
