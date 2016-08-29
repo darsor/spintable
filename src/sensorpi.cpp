@@ -23,6 +23,7 @@ uint64_t getTimestamp();
 
 // this thread creates and sends TamPackets
 void tam_thread() {
+
     TamPacket* tPacket = nullptr;
     Tam* tam = nullptr;
 
@@ -55,6 +56,7 @@ void tam_thread() {
 
 // this thread creates and sends ImuPackets
 void imu_thread() {
+
     ImuPacket* iPacket = nullptr;
     Imu* imu = nullptr;
 
@@ -148,12 +150,6 @@ void camera_thread() {
 // queues every second
 void housekeeping_thread() {
 
-    // set low priority for this thread
-    pid_t pid = getpid();
-    std::stringstream cmd;
-    cmd << "renice -n +1 -p " << pid;
-    if (pid > 0) system(cmd.str().c_str());
-
     // load needed files
     HKPacket* hkPacket = nullptr;
     std::ifstream tempfile("/sys/class/thermal/thermal_zone0/temp");
@@ -193,10 +189,25 @@ void housekeeping_thread() {
 // main opens the GPS and sends time packets
 int main() {
     // launch the instrument threads
+
+    // set high priority for sensor threads
+    pid_t pid = getpid();
+    std::stringstream cmd;
+    cmd << "renice -n -2 -p " << pid;
+    if (pid > 0) system(cmd.str().c_str());
+
     std::thread(tam_thread).detach();
     std::thread(imu_thread).detach();
     std::thread(camera_thread).detach();
+
+    cmd.str("");
+    cmd << "renice -n +1 -p " << pid;
+    if (pid > 0) system(cmd.str().c_str());
     std::thread(housekeeping_thread).detach();
+
+    cmd.str("");
+    cmd << "renice -n 0 -p " << pid;
+    if (pid > 0) system(cmd.str().c_str());
 
     // the main process gathers and sends GPS packets
     TimePacket* tPacket = nullptr;
