@@ -134,12 +134,6 @@ void motor_thread() {
 // queues every second
 void housekeeping_thread() {
 
-    // set low priority for this thread
-    pid_t pid = getpid();
-    std::stringstream cmd;
-    cmd << "renice -n +1 -p " << pid;
-    if (pid > 0) system(cmd.str().c_str());
-
     // load needed files
     HKPacket* hkPacket = nullptr;
     std::ifstream tempfile("/sys/class/thermal/thermal_zone0/temp");
@@ -179,10 +173,24 @@ void housekeeping_thread() {
 // main opens the GPS and sends time packets
 int main() {
 
+    // set high priority for the encoder
+    pid_t pid = getpid();
+    std::stringstream cmd;
+    cmd << "renice -n -2 -p " << pid;
+    if (pid > 0) system(cmd.str().c_str());
+
     // launch the instrument threads
     std::thread(encoder_thread).detach();
-    std::thread(motor_thread).detach();
+
+    cmd.str("");
+    cmd << "renice -n +1 -p " << pid;
+    if (pid > 0) system(cmd.str().c_str());
     std::thread(housekeeping_thread).detach();
+
+    cmd.str("");
+    cmd << "renice -n 0 -p " << pid;
+    if (pid > 0) system(cmd.str().c_str());
+    std::thread(motor_thread).detach();
 
     // the main process gathers and sends GPS packets
     TimePacket* tPacket = nullptr;
