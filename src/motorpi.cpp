@@ -210,12 +210,16 @@ int main() {
         }
 
         // make sure data is available before we get the PPS (avoids blocking on the gps->getTime() call)
-        while(!gps->dataAvail()) usleep(10000);
+        while (!gps->dataAvail()) usleep(10000);
         try {
             while (true) {
                 tPacket = new TimePacket;
 
                 gps->timestampPPS(tPacket->systemTime);
+                if (tPacket->systemTime == 0) {
+                    delete tPacket;
+                    continue;
+                }
                 tPacket->gpsTime = gps->getTime();
 
                 queue.push_tlm(tPacket);

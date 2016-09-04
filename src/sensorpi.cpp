@@ -233,6 +233,10 @@ int main() {
                 tPacket = new TimePacket;
 
                 gps->timestampPPS(tPacket->systemTime);
+                if (tPacket->systemTime == 0) {
+                    delete tPacket;
+                    continue;
+                }
                 tPacket->gpsTime = gps->getTime();
 
                 queue.push_tlm(tPacket);
