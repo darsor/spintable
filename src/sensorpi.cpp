@@ -140,6 +140,7 @@ void camera_thread() {
             camera.retrieve(cPacket->pBuffer);
 
             queue.push_tlm(cPacket);
+            usleep(20000); // sleep for 20ms
         } else {
             sleep(1);
         }
