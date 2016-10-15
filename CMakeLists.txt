@@ -5,7 +5,7 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -O3")
 
 set (COMMON_LIBS ${EXTRA_LIBS} wiringPi pthread)
 
-set (SENSOR_LIBS raspicam)
+set (SENSOR_LIBS ASICamera)
 
 set (MOTOR_LIBS )
 
@@ -21,6 +21,7 @@ set(SENSOR_SOURCES
     src/imu/imu.cpp
     src/tam/tam.cpp
     src/tam/ads1115.cpp
+    src/camera/camera.cpp
 )
 
 set(MOTOR_SOURCES

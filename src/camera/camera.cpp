@@ -1,7 +1,7 @@
 #include "camera.h"
 #include <cstdlib>
 #include <cstdio>
-#include <unistd.h>
+
 
 Camera::Camera() {
     /***************************************************
@@ -39,7 +39,7 @@ Camera::Camera() {
     int bin = 2;
     int imageType = 0;
     int resX = 320;
-    int resY = 320;
+    int resY = 240;
 
     initCamera();
     if(setImageFormat(resX, resY, bin, (IMG_TYPE)imageType)) {
@@ -59,7 +59,7 @@ Camera::Camera() {
     setValue(CONTROL_WB_R, 48, false);
 //  setAutoPara(getMax(CONTROL_GAIN)/2,10,150); //max auto gain and exposure and target brightness
 //	EnableDarkSubtract("dark.bmp"); //dark subtract will be disabled when exposure set auto and exposure below 500ms
-    startCapture(); //start preview
+    started = false;
 }
 
 Camera::~Camera() {
@@ -67,8 +67,18 @@ Camera::~Camera() {
     closeCamera();
 }
 
-int Camera::getFrame(unsigned char (&pBuffer)[102400]) {
-    if (getImageData(pBuffer, sizeof(pBuffer), -1)) {
+void Camera::start() {
+    startCapture();
+    started = true;
+}
+
+void Camera::stop() {
+    stopCapture();
+    started = false;
+}
+
+int Camera::getFrame(unsigned char* pBuffer) {
+    if (getImageData(pBuffer, 76800, -1)) {
         return 0;
     } else return -1;
 }

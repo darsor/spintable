@@ -2,7 +2,7 @@
 #include "gps/gps.h"            // for gps interface
 #include "tam/tam.h"            // for tam interface
 #include "imu/imu.h"            // for imu interface
-#include <raspicam/raspicam.h>  // for camera interface
+#include "camera/camera.h"      // for camera interface
 #include <sys/sysinfo.h>        // for memory usage info
 #include <chrono>               // for timestamps
 #include <thread>               // for multithreading
@@ -99,13 +99,7 @@ void camera_thread() {
     CameraPacket* cPacket = nullptr;
     Packet* cmdPacket = nullptr;
 
-    raspicam::RaspiCam camera;
-    camera.setWidth(320);
-    camera.setHeight(240);
-    camera.setFormat(raspicam::RASPICAM_FORMAT_GRAY);
-    camera.setHorizontalFlip(true);
-    camera.setVerticalFlip(true);
-    camera.setShutterSpeed(1000);
+    Camera camera;
 
     while (true) {
         // check if there is a command to turn the camera on/off
@@ -113,31 +107,23 @@ void camera_thread() {
             queue.pop_cmd(cmdPacket);
             CameraPowerCmd* cCmd = static_cast<CameraPowerCmd*>(cmdPacket);
             cCmd->CameraPowerCmd::convert();
-            // turn it on
-            if (cCmd->state && !camera.isOpened()) {
-                while (!camera.open()) {
-                    printf("FAILED to connect to the camera. Trying again in 5 seconds...\n");
-                    camera.release();
-                    sleep(5);
-                    if (queue.cmdSize() > 0 && queue.cmd_front_id() == CAM_CMD_ID) break;
-                }
-                if (queue.cmdSize() > 0 && queue.cmd_front_id() == CAM_CMD_ID) continue;
-                printf("Successfully connected to the camera\n");
-                sleep(2);
-            // or turn it off
+            // start capture
+            if (cCmd->state && !camera.isStarted()) {
+                camera.start();
+                printf("Started camera capture\n");
+            // or stop capture
             } else if (!cCmd->state) {
-                camera.release();
-                printf("Disconnected from the camera\n");
+                camera.stop();
+                printf("Stopped camera capture\n");
             }
         }
 
         // get and send the packet
-        if (camera.isOpened()) {
+        if (camera.isStarted()) {
             cPacket = new CameraPacket;
 
-            camera.grab();
             cPacket->timestamp = getTimestamp();
-            camera.retrieve(cPacket->pBuffer);
+            camera.getFrame(cPacket->pBuffer);
 
             queue.push_tlm(cPacket);
             usleep(20000); // sleep for 20ms
