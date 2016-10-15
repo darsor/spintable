@@ -50,7 +50,7 @@ Camera::Camera() {
     }
 
     // These controls were found in the SDK demo
-    setValue(CONTROL_EXPOSURE, 1000, false); //ms//auto
+    setValue(CONTROL_EXPOSURE, 700, false); //ms//auto
     setValue(CONTROL_GAIN, 0, false); 
     setValue(CONTROL_GAMMA, 1, false); 
     setValue(CONTROL_BANDWIDTHOVERLOAD, getMin(CONTROL_BANDWIDTHOVERLOAD), false); //low transfer speed
