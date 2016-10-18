@@ -126,7 +126,7 @@ void camera_thread() {
             camera.getFrame(cPacket->pBuffer);
 
             queue.push_tlm(cPacket);
-            usleep(20000); // sleep for 20ms
+            usleep(30000); // sleep for 30ms
         } else {
             sleep(1);
         }

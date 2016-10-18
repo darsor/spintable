@@ -5,7 +5,7 @@
 
 int main() {
     Camera cam;
-    unsigned char pBuffer[102400];
+    unsigned char pBuffer[76800];
 
     cam.getFrame(pBuffer);
 
