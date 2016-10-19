@@ -50,16 +50,15 @@ Camera::Camera() {
     }
 
     // These controls were found in the SDK demo
-    setValue(CONTROL_GAIN, 0, false); 
-    setValue(CONTROL_GAMMA, 1, false); 
-    setValue(CONTROL_BANDWIDTHOVERLOAD, getMin(CONTROL_BANDWIDTHOVERLOAD), false); //low transfer speed
-
 #ifndef AUTO_EXP
     setValue(CONTROL_EXPOSURE, 400, false); //ms//auto
+    setValue(CONTROL_GAIN, 0, false); 
+    setValue(CONTROL_GAMMA, 1, false); 
 #else
     setAutoPara(getMax(CONTROL_GAIN)/2,10,150); //max auto gain and exposure and target brightness
 #endif
 
+    setValue(CONTROL_BANDWIDTHOVERLOAD, getMin(CONTROL_BANDWIDTHOVERLOAD), false); //low transfer speed
     setValue(CONTROL_WB_B, 90, false);
     setValue(CONTROL_WB_R, 48, false);
 //	EnableDarkSubtract("dark.bmp"); //dark subtract will be disabled when exposure set auto and exposure below 500ms
