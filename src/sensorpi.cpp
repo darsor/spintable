@@ -122,8 +122,8 @@ void camera_thread() {
         if (camera.isStarted()) {
             cPacket = new CameraPacket;
 
-            cPacket->timestamp = getTimestamp();
             camera.getFrame(cPacket->pBuffer);
+            cPacket->timestamp = getTimestamp();
 
             queue.push_tlm(cPacket);
             usleep(30000); // sleep for 30ms
