@@ -115,6 +115,12 @@ void CameraPowerCmd::convert() {
     memcpy(&state, buffer+5, sizeof(state));
 }
 
+CameraExpCmd::CameraExpCmd(): Packet(CAM_EXP_SIZE, CAM_EXP_ID) {}
+
+void CameraExpCmd::convert() {
+    memcpy(&exposure, buffer+5, sizeof(exposure));
+}
+
 SetSpeedCmd::SetSpeedCmd() : Packet(MOTOR_SET_SPEED_SIZE, MOTOR_SET_SPEED_ID) {}
 
 void SetSpeedCmd::convert() {

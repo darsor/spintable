@@ -51,7 +51,7 @@ Camera::Camera() {
 
     // These controls were found in the SDK demo
 #ifndef AUTO_EXP
-    setValue(CONTROL_EXPOSURE, 400, false); //ms//auto
+    setValue(CONTROL_EXPOSURE, 400, false); //us//auto
     setValue(CONTROL_GAIN, 0, false); 
     setValue(CONTROL_GAMMA, 1, false); 
 #else
@@ -78,6 +78,10 @@ void Camera::start() {
 void Camera::stop() {
     stopCapture();
     started = false;
+}
+
+void Camera::setExposure(unsigned int us) {
+    setValue(CONTROL_EXPOSURE, us, false); //us//auto
 }
 
 int Camera::getFrame(unsigned char* pBuffer) {

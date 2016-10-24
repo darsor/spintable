@@ -14,6 +14,8 @@
 #define CAM_PKT_SIZE            76813
 #define CAM_CMD_ID              0x31
 #define CAM_CMD_SIZE            7
+#define CAM_EXP_ID              0x32
+#define CAM_EXP_SIZE            9
 
 #define ENC_PKT_ID              0x40
 #define ENC_PKT_SIZE            1205
@@ -135,6 +137,13 @@ class CameraPowerCmd: public Packet {
         CameraPowerCmd();
         void convert();
         uint16_t state;
+};
+
+class CameraExpCmd: public Packet {
+    public:
+        CameraExpCmd();
+        void convert();
+        uint32_t exposure;
 };
 
 class SetSpeedCmd: public Packet {

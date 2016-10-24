@@ -103,19 +103,31 @@ void camera_thread() {
 
     while (true) {
         // check if there is a command to turn the camera on/off
-        if (queue.cmdSize() > 0 && queue.cmd_front_id() == CAM_CMD_ID) {
+        if (queue.cmdSize() > 0 && (queue.cmd_front_id() & 0x30) == 0x30) {
             queue.pop_cmd(cmdPacket);
-            CameraPowerCmd* cCmd = static_cast<CameraPowerCmd*>(cmdPacket);
-            cCmd->CameraPowerCmd::convert();
-            // start capture
-            if (cCmd->state && !camera.isStarted()) {
-                camera.start();
-                printf("Started camera capture\n");
-            // or stop capture
-            } else if (!cCmd->state) {
-                camera.stop();
-                printf("Stopped camera capture\n");
+            if (cmdPacket->id == CAM_CMD_ID) {
+                CameraPowerCmd* cCmd = static_cast<CameraPowerCmd*>(cmdPacket);
+                cCmd->CameraPowerCmd::convert();
+                // start capture
+                if (cCmd->state && !camera.isStarted()) {
+                    camera.start();
+                    printf("Started camera capture\n");
+                // or stop capture
+                } else if (!cCmd->state) {
+                    camera.stop();
+                    printf("Stopped camera capture\n");
+                }
+            } else if (cmdPacket->id == CAM_EXP_ID) {
+                bool started = camera.isStarted();
+                if (started) camera.stop();
+                CameraExpCmd* eCmd = static_cast<CameraExpCmd*>(cmdPacket);
+                eCmd->CameraExpCmd::convert();
+                camera.setExposure(eCmd->exposure);
+                printf("Camera exposure set to %u microseconds\n", eCmd->exposure);
+                if (started) camera.start();
             }
+            delete cmdPacket;
+            cmdPacket = nullptr;
         }
 
         // get and send the packet
