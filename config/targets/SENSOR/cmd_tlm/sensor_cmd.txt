@@ -4,3 +4,8 @@ COMMAND SENSORS CAMERA_STATE LITTLE_ENDIAN "Turn camera on or off"
 	PARAMETER		STATE		40	16 UINT	 0  1  1 "ON (1) to turn on, OFF (0) to turn off"
 		STATE ON 1
 		STATE OFF 0
+		
+COMMAND SENSORS CAMERA_EXPOSURE LITTLE_ENDIAN "Set camera exposure time in microseconds"
+    PARAMETER       LENGTH      0   32 UINT  9  9  9 "Length of packet in bytes, must be 9"
+    ID_PARAMETER    CMD_ID      32   8 UINT 0x32 0x32 0x32 "ID of command, must be 0x32"
+	PARAMETER		EXPOSURE	40	32 UINT	 0  100000  1000 "Exposure time in microseconds"

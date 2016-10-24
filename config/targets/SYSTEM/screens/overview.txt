@@ -37,6 +37,12 @@ VERTICAL
 				SECTIONHEADER "CAMERA commands"
 				BUTTON "Enable Camera" 'cmd("SENSOR CAMERA_STATE with STATE ON")'
 				BUTTON "Disable Camera" 'cmd("SENSOR CAMERA_STATE with STATE OFF")'
+				HORIZONTAL
+					LABEL "Exposure:"
+					NAMED_WIDGET exposure TEXTFIELD
+					BUTTON "Send" 'cmd("SENSOR CAMERA_EXPOSURE with EXPOSURE #{get_named_widget("exposure").text.to_i}")'
+				END
+				
 			END
 			
 			VERTICALBOX
