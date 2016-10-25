@@ -16,13 +16,13 @@
 "config/targets/MOTOR/lib/round_to.rb" 0x77602903
 "config/targets/MOTOR/lib/systime.rb" 0x9F889938
 "config/targets/MOTOR/target.txt" 0x2ABFDBF5
-"config/targets/SENSOR/cmd_tlm/sensor_cmd.txt" 0x3825FCF8
+"config/targets/SENSOR/cmd_tlm/sensor_cmd.txt" 0x01744286
 "config/targets/SENSOR/cmd_tlm/sensor_tlm.txt" 0xB2F6B940
 "config/targets/SENSOR/cmd_tlm_server.txt" 0xD62A6C08
 "config/targets/SENSOR/lib/round_to.rb" 0x77602903
 "config/targets/SENSOR/lib/systime.rb" 0x9F889938
 "config/targets/SENSOR/target.txt" 0xBA178961
-"config/targets/SYSTEM/screens/overview.txt" 0xE5070765
+"config/targets/SYSTEM/screens/overview.txt" 0x62D529AD
 "config/tools/cmd_tlm_server/cmd_tlm_server.txt" 0xC6819D73
 "config/tools/data_viewer/data_viewer.txt" 0xAEE0B7DF
 "config/tools/handbook_creator/default_toc.xsl" 0x4122A040
