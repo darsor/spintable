@@ -121,6 +121,12 @@ void CameraExpCmd::convert() {
     memcpy(&exposure, buffer+5, sizeof(exposure));
 }
 
+CameraBrightCmd::CameraBrightCmd(): Packet(CAM_BRIGHT_SIZE, CAM_BRIGHT_ID) {}
+
+void CameraBrightCmd::convert() {
+    memcpy(&brightness, buffer+5, sizeof(brightness));
+}
+
 SetSpeedCmd::SetSpeedCmd() : Packet(MOTOR_SET_SPEED_SIZE, MOTOR_SET_SPEED_ID) {}
 
 void SetSpeedCmd::convert() {

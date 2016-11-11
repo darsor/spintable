@@ -142,6 +142,17 @@ void camera_thread() {
                     camera.open();
                     sleep(2);
                 }
+            } else if (cmdPacket->id == CAM_BRIGHT_ID) {
+                bool opened = camera.isOpened();
+                if (opened) camera.release();
+                CameraBrightCmd* bCmd = static_cast<CameraBrightCmd*>(cmdPacket);
+                bCmd->CameraBrightCmd::convert();
+                camera.setBrightness(bCmd->brightness);
+                printf("Camera brightness set to %u\n", bCmd->brightness);
+                if (opened) {
+                    camera.open();
+                    sleep(2);
+                }
             }
             delete cmdPacket;
             cmdPacket = nullptr;
