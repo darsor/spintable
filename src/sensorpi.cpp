@@ -2,7 +2,7 @@
 #include "gps/gps.h"            // for gps interface
 #include "tam/tam.h"            // for tam interface
 #include "imu/imu.h"            // for imu interface
-#include "camera/camera.h"      // for camera interface
+#include <raspicam/raspicam.h>  // for camera interface
 #include <sys/sysinfo.h>        // for memory usage info
 #include <chrono>               // for timestamps
 #include <thread>               // for multithreading
@@ -96,10 +96,17 @@ void imu_thread() {
 
 // this thread creates and sends CamPackets
 void camera_thread() {
+
     CameraPacket* cPacket = nullptr;
     Packet* cmdPacket = nullptr;
 
-    Camera camera;
+    raspicam::RaspiCam camera;
+    camera.setWidth(320);
+    camera.setHeight(240);
+    camera.setFormat(raspicam::RASPICAM_FORMAT_GRAY);
+    camera.setHorizontalFlip(true);
+    camera.setVerticalFlip(true);
+    camera.setShutterSpeed(1000);
 
     while (true) {
         // check if there is a command to turn the camera on/off
@@ -108,37 +115,48 @@ void camera_thread() {
             if (cmdPacket->id == CAM_CMD_ID) {
                 CameraPowerCmd* cCmd = static_cast<CameraPowerCmd*>(cmdPacket);
                 cCmd->CameraPowerCmd::convert();
-                // start capture
-                if (cCmd->state && !camera.isStarted()) {
-                    camera.start();
-                    printf("Started camera capture\n");
-                // or stop capture
+                // turn it on
+                if (cCmd->state && !camera.isOpened()) {
+                    while (!camera.open()) {
+                        printf("FAILED to connect to the camera. Trying again in 5 seconds...\n");
+                        camera.release();
+                        sleep(5);
+                        if (queue.cmdSize() > 0 && queue.cmd_front_id() == CAM_CMD_ID) break;
+                    }
+                    if (queue.cmdSize() > 0 && queue.cmd_front_id() == CAM_CMD_ID) continue;
+                    printf("Successfully connected to the camera\n");
+                    sleep(2);
+                // or turn it off
                 } else if (!cCmd->state) {
-                    camera.stop();
-                    printf("Stopped camera capture\n");
+                    camera.release();
+                    printf("Disconnected from the camera\n");
                 }
             } else if (cmdPacket->id == CAM_EXP_ID) {
-                bool started = camera.isStarted();
-                if (started) camera.stop();
+                bool opened = camera.isOpened();
+                if (opened) camera.release();
                 CameraExpCmd* eCmd = static_cast<CameraExpCmd*>(cmdPacket);
                 eCmd->CameraExpCmd::convert();
-                camera.setExposure(eCmd->exposure);
+                camera.setShutterSpeed(eCmd->exposure);
                 printf("Camera exposure set to %u microseconds\n", eCmd->exposure);
-                if (started) camera.start();
+                if (opened) {
+                    camera.open();
+                    sleep(2);
+                }
             }
             delete cmdPacket;
             cmdPacket = nullptr;
         }
 
         // get and send the packet
-        if (camera.isStarted()) {
+        if (camera.isOpened()) {
             cPacket = new CameraPacket;
 
-            camera.getFrame(cPacket->pBuffer);
+            camera.grab();
             cPacket->timestamp = getTimestamp();
+            camera.retrieve(cPacket->pBuffer);
 
             queue.push_tlm(cPacket);
-            usleep(30000); // sleep for 30ms
+            usleep(20000); // sleep for 20ms
         } else {
             sleep(1);
         }
