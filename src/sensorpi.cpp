@@ -142,13 +142,13 @@ void camera_thread() {
                     camera.open();
                     sleep(2);
                 }
-            } else if (cmdPacket->id == CAM_BRIGHT_ID) {
+            } else if (cmdPacket->id == CAM_ISO_ID) {
                 bool opened = camera.isOpened();
                 if (opened) camera.release();
-                CameraBrightCmd* bCmd = static_cast<CameraBrightCmd*>(cmdPacket);
-                bCmd->CameraBrightCmd::convert();
-                camera.setBrightness(bCmd->brightness);
-                printf("Camera brightness set to %u\n", bCmd->brightness);
+                CameraISOCmd* iCmd = static_cast<CameraISOCmd*>(cmdPacket);
+                iCmd->CameraISOCmd::convert();
+                camera.setISO(iCmd->iso);
+                printf("Camera ISO set to %u\n", iCmd->iso);
                 if (opened) {
                     camera.open();
                     sleep(2);

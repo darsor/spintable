@@ -16,8 +16,8 @@
 #define CAM_CMD_SIZE            7
 #define CAM_EXP_ID              0x32
 #define CAM_EXP_SIZE            9
-#define CAM_BRIGHT_ID           0x33
-#define CAM_BRIGHT_SIZE         9
+#define CAM_ISO_ID              0x33
+#define CAM_ISO_SIZE            9
 
 #define ENC_PKT_ID              0x40
 #define ENC_PKT_SIZE            1205
@@ -148,11 +148,11 @@ class CameraExpCmd: public Packet {
         uint32_t exposure;
 };
 
-class CameraBrightCmd: public Packet {
+class CameraISOCmd: public Packet {
     public:
-        CameraBrightCmd();
+        CameraISOCmd();
         void convert();
-        uint32_t brightness;
+        uint32_t iso;
 };
 
 class SetSpeedCmd: public Packet {
