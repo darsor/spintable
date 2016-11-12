@@ -43,9 +43,9 @@ VERTICAL
 					BUTTON "Send" 'cmd("SENSOR CAMERA_EXPOSURE with EXPOSURE #{get_named_widget("exposure").text.to_i}")'
 				END
 				HORIZONTAL
-					LABEL "Brightness:"
-					NAMED_WIDGET brightness TEXTFIELD
-					BUTTON "Send" 'cmd("SENSOR CAMERA_BRIGHTNESS with BRIGHTNESS #{get_named_widget("brightness").text.to_i}")'
+					LABEL "ISO:"
+					NAMED_WIDGET iso TEXTFIELD
+					BUTTON "Send" 'cmd("SENSOR CAMERA_ISO with ISO #{get_named_widget("iso").text.to_i}")'
 				END
 				
 			END

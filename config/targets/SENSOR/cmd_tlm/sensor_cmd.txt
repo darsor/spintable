@@ -10,7 +10,7 @@ COMMAND SENSORS CAMERA_EXPOSURE LITTLE_ENDIAN "Set camera exposure time in micro
     ID_PARAMETER    CMD_ID      32   8 UINT 0x32 0x32 0x32 "ID of command, must be 0x32"
 	PARAMETER		EXPOSURE	40	32 UINT	 0  100000  1000 "Exposure time in microseconds"
 
-COMMAND SENSORS CAMERA_BRIGHTNESS LITTLE_ENDIAN "Set camera brightness"
+COMMAND SENSORS CAMERA_ISO LITTLE_ENDIAN "Set camera ISO"
     PARAMETER       LENGTH      0   32 UINT  9  9  9 "Length of packet in bytes, must be 9"
     ID_PARAMETER    CMD_ID      32   8 UINT 0x33 0x33 0x33 "ID of command, must be 0x33"
-	PARAMETER		BRIGHTNESS	40	32 UINT	 0  100  50 "Brightness [0, 100]"
+	PARAMETER		ISO	40	32 UINT	100 800 400 "ISO [100, 800]"
