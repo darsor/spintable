@@ -20,7 +20,7 @@ DCMotor* motor = nullptr;
 
 // function prototype for getTimestamp() (defined at the bottom), which
 // returns the time in microseconds since unix epoch
-uint64_t getTimestamp();
+inline uint64_t getTimestamp();
 
 // this thread connects to the motor/encoder and puts together an
 // encoder packet containing 100 samples
@@ -237,5 +237,5 @@ int main() {
 
 // return the system time in microseconds since unix epoch
 uint64_t getTimestamp() {
-    return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 }

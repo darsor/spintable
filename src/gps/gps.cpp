@@ -33,7 +33,7 @@ Gps::Gps(int ppsPin, std::string device, int baud): ppsPin(ppsPin) {
     // set high priority for this thread
     pid_t pid = getpid();
     std::stringstream cmd;
-    cmd << "renice -n -3 -p " << pid;
+    cmd << "renice -n -20 -p " << pid;
     if (pid > 0)
         system(cmd.str().c_str());
     wiringPiISR(ppsPin, INT_EDGE_RISING, &ppsISR);
@@ -97,7 +97,7 @@ bool Gps::dataAvail() {
 }
 
 void ppsISR() {
-    timestamp = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    timestamp = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
     {
         std::lock_guard<std::mutex> lk(isr_mutex);
         pps = true;
