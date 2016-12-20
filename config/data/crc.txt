@@ -8,7 +8,7 @@
 "config/targets/COSMOS/screens/version.txt" 0x393D4F72
 "config/targets/COSMOS/target.txt" 0x6C6F9A95
 "config/targets/MOTOR/cmd_tlm/motor_cmd.txt" 0xC99654D8
-"config/targets/MOTOR/cmd_tlm/motor_tlm.txt" 0x425AEF9D
+"config/targets/MOTOR/cmd_tlm/motor_tlm.txt" 0x4CA9CCC9
 "config/targets/MOTOR/cmd_tlm_server.txt" 0x8B4A6722
 "config/targets/MOTOR/lib/motor_position.rb" 0x17DD1D86
 "config/targets/MOTOR/lib/motor_rev_cnt.rb" 0xC801CE5A
@@ -22,7 +22,7 @@
 "config/targets/SENSOR/lib/round_to.rb" 0x77602903
 "config/targets/SENSOR/lib/systime.rb" 0x9F889938
 "config/targets/SENSOR/target.txt" 0xBA178961
-"config/targets/SYSTEM/screens/overview.txt" 0x6FE59E82
+"config/targets/SYSTEM/screens/overview.txt" 0x15A490D7
 "config/tools/cmd_tlm_server/cmd_tlm_server.txt" 0xC6819D73
 "config/tools/data_viewer/data_viewer.txt" 0xAEE0B7DF
 "config/tools/handbook_creator/default_toc.xsl" 0x4122A040
@@ -46,7 +46,7 @@
 "config/tools/script_runner/script_runner.txt" 0x1EECD803
 "config/tools/table_manager/README.txt" 0x93B2C07E
 "config/tools/test_runner/test_runner.txt" 0xD24409D2
-"config/tools/tlm_extractor/mag" 0xDDD30C4D
+"config/tools/tlm_extractor/mag" 0x012491E8
 "config/tools/tlm_extractor/magnetometers" 0x6F241031
 "config/tools/tlm_extractor/README.txt" 0x93B2C07E
 "config/tools/tlm_grapher/motor.txt" 0xF9C4FDD7

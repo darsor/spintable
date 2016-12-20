@@ -20,6 +20,7 @@ TELEMETRY MOTOR ENCODER LITTLE_ENDIAN "data from encoder with system timestamp"
 	MACRO_APPEND_START 0 99 "%s_%d"
 		APPEND_ITEM 	RAW_CNT 32 INT "Raw quadrature counts from encoder"
 	MACRO_APPEND_END
+	APPEND_ITEM		SKIP_FLAG	8	INT	"1 if encoder has skipped a count"
 	
 	ITEM 	SPEED 	0 0 DERIVED "Motor speed in degrees per second"
 		READ_CONVERSION motor_speed.rb
