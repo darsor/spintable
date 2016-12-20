@@ -81,6 +81,7 @@ void CameraPacket::convert() {
 EncoderPacket::EncoderPacket(): Packet(ENC_PKT_SIZE, ENC_PKT_ID) {
     timestamps = new uint64_t[100];
     raw_cnts = new int32_t[100];
+    skip_flag = 0;
 }
 
 EncoderPacket::~EncoderPacket() {
@@ -90,10 +91,11 @@ EncoderPacket::~EncoderPacket() {
 
 void EncoderPacket::convert() {
     if (!buffer) buffer = new unsigned char[length];
-    memcpy(buffer+  0, &length   , 4);
-    memcpy(buffer+  4, &id       , 1);
-    memcpy(buffer+  5, timestamps, 800);
-    memcpy(buffer+805, raw_cnts  , 400);
+    memcpy(buffer+   0, &length   , 4);
+    memcpy(buffer+   4, &id       , 1);
+    memcpy(buffer+   5, timestamps, 800);
+    memcpy(buffer+ 805, raw_cnts  , 400);
+    memcpy(buffer+1205, &skip_flag, 1);
 };
 
 HKPacket::HKPacket() : Packet(HK_PKT_SIZE, HK_PKT_ID) {}

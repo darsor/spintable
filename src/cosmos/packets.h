@@ -20,7 +20,7 @@
 #define CAM_ISO_SIZE            9
 
 #define ENC_PKT_ID              0x40
-#define ENC_PKT_SIZE            1205
+#define ENC_PKT_SIZE            1206
 
 #define MOTOR_SET_HOME_ID       0x41
 #define MOTOR_SET_HOME_SIZE     5
@@ -121,6 +121,7 @@ class EncoderPacket: public Packet {
         void convert();
         uint64_t* timestamps;
         int32_t* raw_cnts;
+        int8_t skip_flag;
 };
 
 class HKPacket: public Packet {

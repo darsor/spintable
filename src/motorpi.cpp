@@ -17,6 +17,7 @@ CosmosQueue queue(4810, 600000, 8);
 // the motor is global because the encoder is accessed through it.
 // one process handles mtor commands, another reads the encoder
 DCMotor* motor = nullptr;
+int8_t skip_flag = 0;
 
 // function prototype for getTimestamp() (defined at the bottom), which
 // returns the time in microseconds since unix epoch
@@ -43,12 +44,24 @@ void encoder_thread() {
         }
 
         try {
+            int32_t last_cnt = motor->updateCnt();
             while (true) {
                 ePacket = new EncoderPacket;
 
                 for (int i=0; i<100; ++i) {
                     ePacket->timestamps[i] = getTimestamp();
                     ePacket->raw_cnts[i] = motor->updateCnt();
+                    if (i == 0) {
+                        if (abs(ePacket->raw_cnts[0] - last_cnt) > 1) {
+                            skip_flag = 1;
+                        }
+                    } else if (abs(ePacket->raw_cnts[i] - ePacket->raw_cnts[i-1]) > 1) {
+                        skip_flag = 1;
+                    }
+                    if (i == 99) {
+                        last_cnt = ePacket->raw_cnts[i];
+                    }
+                    ePacket->skip_flag = skip_flag;
                 }
 
                 queue.push_tlm(ePacket);
@@ -77,6 +90,7 @@ void motor_thread() {
                 case MOTOR_SET_HOME_ID:
                     queue.pop_cmd(cmdPacket);
                     printf("received command to set encoder home\n");
+                    skip_flag = 0;
                     motor->setHome();
                     break;
                 case MOTOR_SET_SPEED_ID:
@@ -85,6 +99,7 @@ void motor_thread() {
                         SetSpeedCmd* speedCmd = static_cast<SetSpeedCmd*>(cmdPacket);
                         speedCmd->SetSpeedCmd::convert();
                         printf("received command to change speed to %d\n", speedCmd->speed);
+                        skip_flag = 0;
                         motor->setGradSpeed(speedCmd->speed);
                     }
                     break;
@@ -94,6 +109,7 @@ void motor_thread() {
                         SetAbsPosCmd* absCmd = static_cast<SetAbsPosCmd*>(cmdPacket);
                         absCmd->SetAbsPosCmd::convert();
                         printf("received command to change absolute position to %f\n", absCmd->position);
+                        skip_flag = 0;
                         motor->pidPosition(absCmd->position);
                     }
                     break;
@@ -108,12 +124,14 @@ void motor_thread() {
                         position += revCmd->position;
                         if (position < 360) position += 360;
                         if (position > 360) position -= 360;
+                        skip_flag = 0;
                         motor->pidPosition(position);
                     }
                     break;
                 case MOTOR_GOTO_INDEX_ID:
                     queue.pop_cmd(cmdPacket);
                     printf("received command to gotoIndex\n");
+                    skip_flag = 0;
                     motor->gotoIndex();
                     break;
                 default:
